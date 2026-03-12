@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">testNetworkYossi</string>
+    <string name="Username">Username</string>
+    <string name="Password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="login">LOGIN</string>
+    <string name="sign_up_select">Don\'t have an account? Sign up</string>
+    <string name="Title">ALONIAS</string>
+    <string name="sign_up">SIGN UP</string>
+    <string name="already_have_an_account_login">Already have an account? Login</string>
+    <string name="fields_cannot_be_empty">Fields cannot be empty</string>
+    <string name="passwords_do_not_match">Passwords do not match</string>
+    <string name="alonias">ALONIAS</string>
+    <string name="round_time_seconds">ROUND TIME (SECONDS)</string>
+    <string name="difficulty">DIFFICULTY</string>
+    <string name="players">PLAYERS</string>
+    <string name="create_room">CREATE ROOM</string>
+    <string name="singleplayer">SINGLEPLAYER</string>
+    <string name="main">MAIN</string>
+    <string name="join_room">JOIN ROOM</string>
+    <string name="room_name">ROOM NAME</string>
+</resources>

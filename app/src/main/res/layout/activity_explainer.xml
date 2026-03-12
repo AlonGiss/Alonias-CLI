@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/ng_card_red_black">
+
+    <!-- CARD -->
+    <LinearLayout
+        android:id="@+id/explainerCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="@drawable/bg_card_red"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_percent="0.90">
+
+        <!-- TITLE -->
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="EXPLICADOR"
+            android:shadowColor="@color/white"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="40"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:gravity="center"
+            android:letterSpacing="0.15"
+            android:fontFamily="@font/planet_jumbo"
+            android:paddingBottom="16dp"/>
+
+        <!-- ROOM + STATUS -->
+        <TextView
+            android:id="@+id/tvRoomInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ROOM: 9ZQ1K  •  TU TURNO"
+            android:textColor="#FF8A80"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:paddingBottom="10dp"/>
+
+        <!-- TIMER -->
+        <TextView
+            android:id="@+id/tvTimer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="46sp"
+            android:gravity="center"
+            android:paddingBottom="12dp"/>
+
+        <!-- SCORES -->
+        <LinearLayout
+            android:id="@+id/scoreRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingBottom="12dp">
+
+            <TextView
+                android:id="@+id/tvScoreYou"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="TU EQUIPO: 0"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:gravity="start"/>
+
+            <TextView
+                android:id="@+id/tvScoreOther"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="RIVAL: 0"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:gravity="end"/>
+        </LinearLayout>
+
+        <!-- WORD (ONLY EXPLAINER) -->
+        <TextView
+            android:id="@+id/tvWordLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PALABRA"
+            android:textColor="#AAAAAA"
+            android:textStyle="bold"
+            android:letterSpacing="0.12"
+            android:gravity="center"/>
+
+        <TextView
+            android:id="@+id/tvWord"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="-"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="34sp"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="14dp"/>
+
+        <!-- INFO -->
+        <TextView
+            android:id="@+id/tvHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No digas la palabra ni derivados."
+            android:textColor="#FF8A80"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:paddingBottom="14dp"/>
+
+        <!-- BUTTONS -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSkip"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_red"
+            android:text="SKIP"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            app:backgroundTint="@null"
+            app:rippleColor="@android:color/transparent"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnEndTurn"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_button_red"
+            android:text="TERMINAR TURNO"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            app:backgroundTint="@null"
+            app:rippleColor="@android:color/transparent"/>
+
+        <!-- ERROR / STATUS -->
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#FF5252"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:paddingTop="12dp"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
