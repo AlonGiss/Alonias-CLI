@@ -2,17 +2,17 @@ package com.alongiss.testnetworkyossi;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.view.View;
 import android.widget.TextView;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.button.MaterialButton;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 public class game_over extends AppCompatActivity {
@@ -20,20 +20,45 @@ public class game_over extends AppCompatActivity {
     private String roomId;
     private String myUsername;
 
+    // Hacia dónde navegar después de recibir lvr~True del servidor
+    private static final int DEST_NONE    = 0;
+    private static final int DEST_HOME    = 1;
+    private static final int DEST_LOBBY   = 2;
+    private int pendingDest = DEST_NONE;
+
+    private MaterialButton btnRematch;
+    private MaterialButton btnLeave;
+
+    private final Handler netHandler = new Handler(Looper.getMainLooper()) {
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.obj == null) return;
+            String text = new String((byte[]) msg.obj, StandardCharsets.UTF_8).trim();
+
+            // Respuesta del servidor al abandonar la sala
+            if (text.startsWith("lvr~")) {
+                // lvr~True o lvr~False — en cualquier caso navegamos
+                navigateToDest();
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game_over);
 
-        Intent intent    = getIntent();
-        roomId           = intent.getStringExtra("roomId");
-        myUsername       = intent.getStringExtra("username");
-        int    winner    = intent.getIntExtra("winner",  -1);
-        int    scoreA    = intent.getIntExtra("scoreA",   0);
-        int    scoreB    = intent.getIntExtra("scoreB",   0);
-        String team0raw  = intent.getStringExtra("team0players");
-        String team1raw  = intent.getStringExtra("team1players");
-        String reason    = intent.getStringExtra("reason");
+        SocketHandler.setHandler(netHandler);
+
+        Intent intent   = getIntent();
+        roomId          = intent.getStringExtra("roomId");
+        myUsername      = intent.getStringExtra("username");
+        int    winner   = intent.getIntExtra("winner",  -1);
+        int    scoreA   = intent.getIntExtra("scoreA",   0);
+        int    scoreB   = intent.getIntExtra("scoreB",   0);
+        String team0raw = intent.getStringExtra("team0players");
+        String team1raw = intent.getStringExtra("team1players");
+        String reason   = intent.getStringExtra("reason");
 
         String[] team0 = (team0raw != null && !team0raw.isEmpty()) ? team0raw.split(";") : new String[0];
         String[] team1 = (team1raw != null && !team1raw.isEmpty()) ? team1raw.split(";") : new String[0];
@@ -46,12 +71,12 @@ public class game_over extends AppCompatActivity {
         TextView tvTeam0Players = findViewById(R.id.tvTeam0Players);
         TextView tvTeam1Players = findViewById(R.id.tvTeam1Players);
         TextView tvReason       = findViewById(R.id.tvReason);
-        MaterialButton btnRematch = findViewById(R.id.btnRematch);
-        MaterialButton btnLeave   = findViewById(R.id.btnLeave);
+        btnRematch = findViewById(R.id.btnRematch);
+        btnLeave   = findViewById(R.id.btnLeave);
 
-        // ── Determinar si yo soy del equipo ganador ───────────────────
+        // ── Determinar equipo del jugador ─────────────────────────────
         boolean iAmInTeam0 = isInTeam(myUsername, team0);
-        int myTeam          = iAmInTeam0 ? 0 : 1;
+        int myTeam = iAmInTeam0 ? 0 : 1;
 
         // ── Título / resultado ────────────────────────────────────────
         if (winner == -1) {
@@ -82,29 +107,60 @@ public class game_over extends AppCompatActivity {
         }
 
         // ── Botón: Jugar de nuevo ─────────────────────────────────────
+        // Avisa al servidor que el jugador sale de la sala, luego va al Lobby
+        // (el lobby muestra la sala en estado WAITING lista para un nuevo inicio)
         btnRematch.setOnClickListener(v -> {
-            // Le pedimos al servidor que reinicie el juego en la misma sala
-            // Usamos el mismo mecanismo que start: stg~roomId
-            // La Activity vuelve al lobby y espera el stg~True
-            Intent lobbyIntent = new Intent(this, LobbyActivity.class);
-            lobbyIntent.putExtra("roomId",   roomId);
-            lobbyIntent.putExtra("username", myUsername);
-            lobbyIntent.putExtra("rematch",  true);   // flag para que el lobby muestre "esperando rematch"
-            lobbyIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(lobbyIntent);
-            finish();
+            btnRematch.setEnabled(false);
+            btnLeave.setEnabled(false);
+            pendingDest = DEST_LOBBY;
+            sendLeaveRoom();
         });
 
         // ── Botón: Salir ──────────────────────────────────────────────
+        // Avisa al servidor que el jugador abandona la sala, luego va al inicio
         btnLeave.setOnClickListener(v -> {
-            Intent mainIntent = new Intent(this, MainActivity.class);
-            mainIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(mainIntent);
-            finish();
+            btnRematch.setEnabled(false);
+            btnLeave.setEnabled(false);
+            pendingDest = DEST_HOME;
+            sendLeaveRoom();
         });
     }
 
-    /** Formatea la lista de jugadores, marcando al usuario actual con "(tú)" */
+    // ── Envía lvr~roomId al servidor ─────────────────────────────────
+    private void sendLeaveRoom() {
+        String msg = "lvr~" + roomId;
+        new Thread(new tcp_send_recv(netHandler, msg.getBytes(StandardCharsets.UTF_8))).start();
+
+        // Safety timeout: si en 3s no llega respuesta, navegamos igual
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (pendingDest != DEST_NONE) navigateToDest();
+        }, 3000);
+    }
+
+    // ── Navega según pendingDest ──────────────────────────────────────
+    private void navigateToDest() {
+        if (pendingDest == DEST_NONE) return;
+        int dest = pendingDest;
+        pendingDest = DEST_NONE;   // evitar doble ejecución
+
+        if (dest == DEST_LOBBY) {
+            // Vuelve al lobby de la misma sala para esperar un nuevo inicio
+            Intent i = new Intent(this, LobbyActivity.class);
+            i.putExtra("roomId",   roomId);
+            i.putExtra("username", myUsername);
+            i.putExtra("isHost",   false);   // el lobby pedirá la lista; el host real lo verá
+            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } else {
+            // Sale al inicio de la app
+            Intent i = new Intent(this, MainActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        }
+        finish();
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────
     private String formatPlayers(String[] players, String me) {
         if (players == null || players.length == 0) return "—";
         StringBuilder sb = new StringBuilder();
@@ -123,6 +179,4 @@ public class game_over extends AppCompatActivity {
         }
         return false;
     }
-
-
 }

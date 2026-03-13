@@ -51,38 +51,44 @@ public class LobbyActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_lobby);
 
-        roomId = getIntent().getStringExtra("roomId");
-        username = getIntent().getStringExtra("username");
-        isHost = getIntent().getBooleanExtra("isHost", false);
+        roomId          = getIntent().getStringExtra("roomId");
+        username        = getIntent().getStringExtra("username");
+        isHost          = getIntent().getBooleanExtra("isHost", false);
+        boolean fromRematch = getIntent().getBooleanExtra("rematch", false);
 
         SocketHandler.setHandler(netHandler);
 
-        tvRoom = findViewById(R.id.tvRoom);
-        tvStatus = findViewById(R.id.tvStatus);
+        tvRoom    = findViewById(R.id.tvRoom);
+        tvStatus  = findViewById(R.id.tvStatus);
         tvPlayers = findViewById(R.id.tvPlayers);
-        tvError = findViewById(R.id.tvError);
-        btnStart = findViewById(R.id.btnStart);
-        btnLeave = findViewById(R.id.btnLeave);
+        tvError   = findViewById(R.id.tvError);
+        btnStart  = findViewById(R.id.btnStart);
+        btnLeave  = findViewById(R.id.btnLeave);
 
         tvRoom.setText("ROOM: " + roomId);
         tvStatus.setText("Estado: WAITING");
 
-        btnStart.setEnabled(isHost);
-        btnStart.setAlpha(isHost ? 1f : 0.35f);
+        // Deshabilitado hasta confirmar rol
+        btnStart.setEnabled(false);
+        btnStart.setAlpha(0.35f);
 
-        btnStart.setOnClickListener(v -> {
-            // host inicia el juego
-            send("stg~" + roomId);
-        });
+        btnStart.setOnClickListener(v -> send("stg~" + roomId));
 
         btnLeave.setOnClickListener(v -> {
-            // opcional: manda leave si lo tenés
-            // send("lev~" + roomId);
+            send("lvr~" + roomId);
             finish();
         });
 
-        // arranca polling
-        pollHandler.postDelayed(pollRunnable, 200);
+        if (fromRematch) {
+            // Salimos de la sala en game_over; volvemos a entrar con jnr~
+            tvStatus.setText("Reconectando a la sala...");
+            send("jnr~" + roomId + "~");
+        } else {
+            // Flujo normal: habilitar boton si host y arrancar polling
+            btnStart.setEnabled(isHost);
+            btnStart.setAlpha(isHost ? 1f : 0.35f);
+            pollHandler.postDelayed(pollRunnable, 200);
+        }
     }
 
     private void send(String plain) {
@@ -90,6 +96,33 @@ public class LobbyActivity extends AppCompatActivity {
     }
 
     private void handleServer(String text) {
+
+        // jnr~ respuesta al re-join desde rematch
+        // jnr~True~roomId~players  o  jnr~False~REASON
+        if (text.startsWith("jnr~")) {
+            String[] p = text.split("~", 4);
+            if (p.length >= 2 && "True".equals(p[1])) {
+                tvStatus.setText("Estado: WAITING");
+                // Consultar al servidor si somos el host de esta sala
+                send("rph~" + roomId);
+                pollHandler.postDelayed(pollRunnable, 300);
+            } else {
+                String reason = (p.length >= 3) ? p[2] : "ERROR";
+                showError("No se pudo reconectar: " + reason);
+            }
+            return;
+        }
+
+        // rph~ respuesta: rph~roomId~hostUsername — para saber si somos host
+        if (text.startsWith("rph~")) {
+            String[] p = text.split("~", 3);
+            if (p.length < 3) return;
+            boolean amHost = username != null && username.equals(p[2]);
+            isHost = amHost;
+            btnStart.setEnabled(amHost);
+            btnStart.setAlpha(amHost ? 1f : 0.35f);
+            return;
+        }
 
         // players list:
         // rpl~roomId~user1,user2,user3
@@ -146,21 +179,6 @@ public class LobbyActivity extends AppCompatActivity {
             i.putExtra("username", username);
             startActivity(i);
             finish();
-        }
-
-        // host transfer: hst~roomId~newHostUsername
-        if (text.startsWith("hst~")) {
-            String[] p = text.split("~");
-            if (p.length < 3) return;
-            if (!roomId.equals(p[1])) return;
-            String newHost = p[2];
-            if (newHost.equals(username)) {
-                isHost = true;
-                btnStart.setEnabled(true);
-                btnStart.setAlpha(1f);
-                tvStatus.setText("Estado: WAITING (eres el nuevo host)");
-            }
-            return;
         }
 
         // update state: upd~roomId~turnTeam~explainer~endEpoch~score0~score1
