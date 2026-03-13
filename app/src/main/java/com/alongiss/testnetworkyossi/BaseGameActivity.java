@@ -70,6 +70,8 @@ public abstract class BaseGameActivity extends AppCompatActivity {
             handlePlayerDisconnected(text);
         } else if (text.startsWith("rsm~")) {
             handleGameResumed(text);
+        } else if (text.startsWith("hst~")) {
+            handleHostTransfer(text);
         } else {
             onOtherMessage(text);
         }
@@ -235,6 +237,21 @@ public abstract class BaseGameActivity extends AppCompatActivity {
         }
 
         Toast.makeText(this, who + " reconectó. ¡Seguimos!", Toast.LENGTH_SHORT).show();
+    }
+
+    // -------------------------------------------------------
+    // hst~roomId~newHostUsername — transferencia de host
+    // Solo relevante en pantallas de lobby; aquí lo ignoramos
+    // pero las subclases pueden sobreescribirlo si es necesario
+    // -------------------------------------------------------
+    private void handleHostTransfer(String text) {
+        String[] p = text.split("~");
+        if (p.length < 3) return;
+        onHostTransferred(p[2]);
+    }
+
+    protected void onHostTransferred(String newHostUsername) {
+        // Subclases pueden reaccionar si necesitan (por defecto no-op durante juego)
     }
 
     // -------------------------------------------------------

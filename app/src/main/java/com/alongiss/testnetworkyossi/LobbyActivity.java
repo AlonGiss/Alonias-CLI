@@ -148,6 +148,21 @@ public class LobbyActivity extends AppCompatActivity {
             finish();
         }
 
+        // host transfer: hst~roomId~newHostUsername
+        if (text.startsWith("hst~")) {
+            String[] p = text.split("~");
+            if (p.length < 3) return;
+            if (!roomId.equals(p[1])) return;
+            String newHost = p[2];
+            if (newHost.equals(username)) {
+                isHost = true;
+                btnStart.setEnabled(true);
+                btnStart.setAlpha(1f);
+                tvStatus.setText("Estado: WAITING (eres el nuevo host)");
+            }
+            return;
+        }
+
         // update state: upd~roomId~turnTeam~explainer~endEpoch~score0~score1
         if (text.startsWith("upd~")) {
             tvStatus.setText("Estado: PLAYING");
