@@ -165,7 +165,7 @@ public abstract class BaseGameActivity extends AppCompatActivity {
             disconnectDialog.dismiss();
         }
 
-        Intent intent = new Intent(this, activity_game_over.class);
+        Intent intent = new Intent(this, game_over.class);
         intent.putExtra("roomId",       roomId);
         intent.putExtra("username",     myUsername);
         intent.putExtra("winner",       winner);
