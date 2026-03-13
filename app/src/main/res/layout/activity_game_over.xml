@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".game_over">
+
+    <ScrollView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#1A1A2E"
+        android:padding="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="32dp"
+            android:paddingBottom="32dp">
+
+            <!-- Título: GANASTE / PERDISTE / EMPATE -->
+            <TextView
+                android:id="@+id/tvGameOverTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FIN DEL JUEGO"
+                android:textSize="40sp"
+                android:textStyle="bold"
+                android:textColor="#FFD700"
+                android:gravity="center"
+                android:layout_marginBottom="8dp"/>
+
+            <!-- Subtítulo -->
+            <TextView
+                android:id="@+id/tvResult"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="18sp"
+                android:textColor="#CCCCCC"
+                android:gravity="center"
+                android:layout_marginBottom="32dp"/>
+
+            <!-- Razón (solo si alguien se fue) -->
+            <TextView
+                android:id="@+id/tvReason"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="14sp"
+                android:textColor="#FF6B6B"
+                android:gravity="center"
+                android:visibility="gone"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Puntajes -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:id="@+id/tvScoreA"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Equipo A: 0"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="#4FC3F7"
+                    android:gravity="center"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" — "
+                    android:textSize="22sp"
+                    android:textColor="#FFFFFF"/>
+
+                <TextView
+                    android:id="@+id/tvScoreB"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Equipo B: 0"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="#EF9A9A"
+                    android:gravity="center"/>
+
+            </LinearLayout>
+
+            <!-- Jugadores equipo A -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="JUGADORES"
+                android:textSize="12sp"
+                android:textColor="#888888"
+                android:textStyle="bold"
+                android:letterSpacing="0.15"
+                android:layout_marginBottom="6dp"/>
+
+            <TextView
+                android:id="@+id/tvTeam0Players"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Equipo A: —"
+                android:textSize="16sp"
+                android:textColor="#4FC3F7"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvTeam1Players"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Equipo B: —"
+                android:textSize="16sp"
+                android:textColor="#EF9A9A"
+                android:layout_marginBottom="40dp"/>
+
+            <!-- Botón: Jugar de nuevo -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRematch"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="JUGAR DE NUEVO"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp"
+                style="@style/Widget.MaterialComponents.Button"/>
+
+            <!-- Botón: Salir al menú -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLeave"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="SALIR AL MENÚ"
+                android:textSize="16sp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
