@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.view.View;
+import android.widget.Toast;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -80,9 +81,10 @@ public class LobbyActivity extends AppCompatActivity {
         });
 
         if (fromRematch) {
-            // Salimos de la sala en game_over; volvemos a entrar con jnr~
-            tvStatus.setText("Reconectando a la sala...");
-            send("jnr~" + roomId + "~");
+            // We stayed in the room (did not leave); just refresh host and start polling
+            tvStatus.setText("Estado: WAITING");
+            send("rph~" + roomId);
+            pollHandler.postDelayed(pollRunnable, 200);
         } else {
             // Flujo normal: habilitar boton si host y arrancar polling
             btnStart.setEnabled(isHost);
@@ -109,6 +111,32 @@ public class LobbyActivity extends AppCompatActivity {
             } else {
                 String reason = (p.length >= 3) ? p[2] : "ERROR";
                 showError("No se pudo reconectar: " + reason);
+            }
+            return;
+        }
+
+        // hst~roomId~newHostUsername — host transfer (when host leaves, server pushes to all)
+        if (text.startsWith("hst~")) {
+            String[] p = text.split("~", 3);
+            if (p.length >= 3 && roomId.equals(p[1])) {
+                boolean amHost = username != null && username.equals(p[2].trim());
+                isHost = amHost;
+                btnStart.setEnabled(amHost);
+                btnStart.setAlpha(amHost ? 1f : 0.35f);
+                if (amHost) {
+                    Toast.makeText(this, "You are now the host.", Toast.LENGTH_SHORT).show();
+                }
+            }
+            return;
+        }
+
+        // lpl~roomId~username — player left (server pushes to refresh list)
+        if (text.startsWith("lpl~")) {
+            String[] p = text.split("~", 3);
+            if (p.length >= 3 && roomId.equals(p[1])) {
+                String who = p[2].trim();
+                Toast.makeText(this, who + " left the lobby.", Toast.LENGTH_SHORT).show();
+                send("rpl~" + roomId);  // refresh player list immediately
             }
             return;
         }

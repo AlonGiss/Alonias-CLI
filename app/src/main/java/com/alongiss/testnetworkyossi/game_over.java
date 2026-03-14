@@ -7,6 +7,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -39,6 +40,15 @@ public class game_over extends AppCompatActivity {
             if (text.startsWith("lvr~")) {
                 // lvr~True o lvr~False — en cualquier caso navegamos
                 navigateToDest();
+                return;
+            }
+            // lpl~roomId~username — another player left (server pushes so remaining players see it)
+            if (text.startsWith("lpl~")) {
+                String[] p = text.split("~", 3);
+                if (p.length >= 3 && roomId != null && roomId.equals(p[1])) {
+                    String who = p[2].trim();
+                    Toast.makeText(game_over.this, who + " left the room.", Toast.LENGTH_SHORT).show();
+                }
             }
         }
     };
@@ -107,13 +117,12 @@ public class game_over extends AppCompatActivity {
         }
 
         // ── Botón: Jugar de nuevo ─────────────────────────────────────
-        // Avisa al servidor que el jugador sale de la sala, luego va al Lobby
-        // (el lobby muestra la sala en estado WAITING lista para un nuevo inicio)
+        // Stay in room and go to Lobby (do NOT send lvr — we remain in the room)
         btnRematch.setOnClickListener(v -> {
             btnRematch.setEnabled(false);
             btnLeave.setEnabled(false);
             pendingDest = DEST_LOBBY;
-            sendLeaveRoom();
+            navigateToDest();  // Go to lobby immediately, no need to leave
         });
 
         // ── Botón: Salir ──────────────────────────────────────────────
@@ -144,16 +153,17 @@ public class game_over extends AppCompatActivity {
         pendingDest = DEST_NONE;   // evitar doble ejecución
 
         if (dest == DEST_LOBBY) {
-            // Vuelve al lobby de la misma sala para esperar un nuevo inicio
+            // Vuelve al lobby de la misma sala para esperar un nuevo inicio (still in room)
             Intent i = new Intent(this, LobbyActivity.class);
             i.putExtra("roomId",   roomId);
             i.putExtra("username", myUsername);
-            i.putExtra("isHost",   false);   // el lobby pedirá la lista; el host real lo verá
+            i.putExtra("isHost",   false);   // lobby will ask rph~ to get actual host
+            i.putExtra("rematch",  true);    // we stayed in room, don't re-join
             i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
         } else {
             // Sale al inicio de la app
-            Intent i = new Intent(this, MainActivity.class);
+            Intent i = new Intent(this, HomeActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
         }
