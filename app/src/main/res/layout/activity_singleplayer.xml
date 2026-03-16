@@ -6,9 +6,8 @@
     android:layout_height="match_parent"
     android:background="@drawable/ng_card_red_black">
 
-    <!-- SETTINGS CARD -->
     <LinearLayout
-        android:id="@+id/singleSettingsCard"
+        android:id="@+id/singleGameCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -20,55 +19,57 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintWidth_percent="0.80">
 
-        <!-- TITLE -->
         <TextView
+            android:id="@+id/tvTimerSingle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/alonias"
-            android:textSize="30sp"
+            android:text="00:00"
+            android:textSize="18sp"
+            android:textColor="#FFB4B4"
+            android:textStyle="bold"
+            android:gravity="center_horizontal"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvScoreSingle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Score: 0"
+            android:textSize="18sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:gravity="center_horizontal"
+            android:paddingBottom="16dp" />
+
+        <TextView
+            android:id="@+id/tvWordSingle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="———"
+            android:textSize="32sp"
             android:textColor="#FFFFFF"
             android:textStyle="bold"
             android:gravity="center"
-            android:letterSpacing="0.15"
-            android:fontFamily="@font/planet_jumbo"
-            android:paddingBottom="12dp"/>
+            android:paddingTop="24dp"
+            android:paddingBottom="24dp" />
 
-        <!-- ROUND TIME -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/round_time_seconds"
-            android:textColor="#FFB4B4"
-            android:textSize="13sp"/>
-
-        <Spinner
-            android:id="@+id/spRoundTime"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:background="@drawable/bg_input"
-            android:layout_marginBottom="16dp"/>
-
-        <!-- DIFFICULTY -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/difficulty"
-            android:textColor="#FFB4B4"
-            android:textSize="13sp"/>
-
-        <Spinner
-            android:id="@+id/spDifficulty"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:background="@drawable/bg_input"
-            android:layout_marginBottom="16dp" />
-
-        <!-- CREATE ROOM -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCreateRoom"
+            android:id="@+id/btnCorrect"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:text="@string/create_room"
+            android:text="@string/correct"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:background="@drawable/bg_button_red"
+            app:backgroundTint="@null"
+            app:rippleColor="@android:color/transparent"
+            android:layout_marginBottom="12dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSkipSingle"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="@string/skip"
             android:textColor="#FFFFFF"
             android:textStyle="bold"
             android:background="@drawable/bg_button_red"
@@ -78,3 +79,4 @@
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

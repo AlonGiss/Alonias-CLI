@@ -14,6 +14,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TestNetworkYossi">
         <activity
+            android:name=".ActivitySingleplayer"
+            android:exported="false" />
+        <activity
             android:name=".game_over"
             android:exported="false" />
         <activity

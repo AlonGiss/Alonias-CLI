@@ -41,40 +41,28 @@ public class CreateSingleRoom extends AppCompatActivity {
                 R.layout.spinner_dropdown_item_white
         );
         spRoundTime.setAdapter(timeAdapter);
-
-
-        // ===== Players =====
-        Spinner spPlayers = findViewById(R.id.spPlayers);
-        ArrayAdapter<String> playersAdapter = new ArrayAdapter<>(
-                this,
-                R.layout.spinner_item_white,
-                new String[]{"4", "6", "8"}
-        );
-        playersAdapter.setDropDownViewResource(
-                R.layout.spinner_dropdown_item_white
-        );
-        spPlayers.setAdapter(playersAdapter);
     }
 
 
     private void create() {
         Spinner spTime = findViewById(R.id.spRoundTime);
-        Spinner spPlayers = findViewById(R.id.spPlayers);
         Spinner sp = findViewById(R.id.spDifficulty);
 
-        if (spTime.getSelectedItem().toString().isEmpty() ||
-                spPlayers.getSelectedItem().toString().isEmpty()) {
+        if (spTime.getSelectedItem().toString().isEmpty()) {
 
             toast("Fill all fields");
             return;
         }
 
         int time = Integer.parseInt(spTime.getSelectedItem().toString());
-        int players = Integer.parseInt(spPlayers.getSelectedItem().toString());
         String difficulty = sp.getSelectedItem().toString();
 
         toast("Single game started (" + difficulty + ")");
-        // start GameActivity
+        // Lanzar modo singleplayer simple (sin sala en servidor)
+        android.content.Intent i = new android.content.Intent(this, ActivitySingleplayer.class);
+        i.putExtra("difficulty", difficulty);
+        i.putExtra("roundTime", time);
+        startActivity(i);
     }
 
     private void toast(String msg) {

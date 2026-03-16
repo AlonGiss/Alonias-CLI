@@ -99,7 +99,7 @@ public class JoinRoom extends AppCompatActivity {
     private void onRoomClicked(int position) {
         if (position < 0 || position >= roomsData.size()) return;
 
-        RoomInfo room = roomsData.get(position);
+        RoomInfo room = this.roomsData.get(position);
 
         // checks opcionales
         if (!"WAITING".equalsIgnoreCase(room.status)) {

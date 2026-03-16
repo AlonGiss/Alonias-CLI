@@ -19,4 +19,6 @@
     <string name="main">MAIN</string>
     <string name="join_room">JOIN ROOM</string>
     <string name="room_name">ROOM NAME</string>
+    <string name="skip">skip</string>
+    <string name="correct">correct</string>
 </resources>
