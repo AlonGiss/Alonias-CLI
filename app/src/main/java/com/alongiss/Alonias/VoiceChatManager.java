@@ -1,4 +1,4 @@
-package com.alongiss.testnetworkyossi;
+package com.alongiss.Alonias;
 
 import android.content.Context;
 import android.media.AudioAttributes;

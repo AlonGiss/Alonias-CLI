@@ -1,19 +1,21 @@
-package com.alongiss.testnetworkyossi;
+package com.alongiss.Alonias;
 
 import android.os.Bundle;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
 import com.google.android.material.button.MaterialButton;
 
-public class activity_explainer extends BaseGameActivity {
+public class activity_guesser extends BaseGameActivity {
 
-    private TextView tvWord;
     private TextView tvRoomInfo;
-    private TextView tvStatus;
-    private MaterialButton btnSkip;
+    private TextView tvExplainer;
+    private EditText etGuess;
+    private MaterialButton btnSendGuess;
+    private TextView tvResult;
     private MaterialButton btnMuteVoice;
 
     private VoiceChatManager voiceChat;
@@ -21,31 +23,31 @@ public class activity_explainer extends BaseGameActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_explainer);
+        setContentView(R.layout.activity_guesser);
 
         tvTimer  = findViewById(R.id.tvTimer);
         tvScoreA = findViewById(R.id.tvScoreYou);
         tvScoreB = findViewById(R.id.tvScoreOther);
 
-        tvWord    = findViewById(R.id.tvWord);
-        tvRoomInfo = findViewById(R.id.tvRoomInfo);
-        tvStatus  = findViewById(R.id.tvStatus);
-
-        btnSkip    = findViewById(R.id.btnSkip);
+        tvRoomInfo  = findViewById(R.id.tvRoomInfo);
+        tvExplainer = findViewById(R.id.tvExplainer);
+        etGuess     = findViewById(R.id.etGuess);
+        btnSendGuess = findViewById(R.id.btnSendGuess);
+        tvResult    = findViewById(R.id.tvResult);
         btnMuteVoice = findViewById(R.id.btnMuteVoice);
 
-        tvRoomInfo.setText("ROOM: " + roomId + "  •  TU TURNO");
+        tvRoomInfo.setText("ROOM: " + roomId);
 
-        // Explainer puede hablar
+        // Guessers pueden hablar
         voiceChat = new VoiceChatManager(this,roomId, myUsername, true);
         voiceChat.start();
 
-        btnSkip.setOnClickListener(v -> {
-            sendToServer("skp~" + roomId);
-            showStatus("Skip enviado...", false);
+        btnSendGuess.setOnClickListener(v -> {
+            String guess = etGuess.getText().toString().trim();
+            if (guess.isEmpty()) return;
+            // gss~roomId~guessText
+            sendToServer("gss~" + roomId + "~" + guess);
         });
-
-
 
         btnMuteVoice.setOnClickListener(v -> {
             if (voiceChat == null) return;
@@ -58,39 +60,38 @@ public class activity_explainer extends BaseGameActivity {
     // FIX: firma actualizada — timeLeft en vez de endEpoch
     @Override
     protected void onUpd(String explainer, int timeLeft, int scoreA, int scoreB) {
+        tvExplainer.setText("EXPLICA: " + explainer);
+
         boolean amIExplainer = myUsername != null && myUsername.equals(explainer);
-        if (!amIExplainer) {
-            // El turno pasó a otro equipo — el servidor mandará rol~SPECTATOR
-            // Mientras tanto actualizamos la UI
-            tvRoomInfo.setText("ROOM: " + roomId + "  •  NO ES TU TURNO");
-            tvWord.setText("—");
-            btnSkip.setEnabled(false);
-            showStatus("Ahora explica: " + explainer, false);
-        } else {
-            tvRoomInfo.setText("ROOM: " + roomId + "  •  TU TURNO");
-            btnSkip.setEnabled(true);
+        btnSendGuess.setEnabled(!amIExplainer);
+        if (amIExplainer) {
+            showResult("Ahora sos explicador.", true);
         }
     }
 
     @Override
     protected void onWord(String word) {
-        tvWord.setText(word);
-        showStatus("Nueva palabra", false);
+        // Guessers no reciben la palabra
     }
 
     @Override
     protected void onGuessResult(boolean correct) {
-        // El guess result le llega al guesser, no al explainer
+        if (correct) {
+            showResult("✅ CORRECTO!", false);
+            etGuess.setText("");
+        } else {
+            showResult("❌ NO", true);
+        }
     }
 
     @Override
     protected void onStartResult(boolean ok, String reason) {
-        showStatus(ok ? "Juego iniciado" : ("No se pudo iniciar: " + reason), !ok);
+        showResult(ok ? "Juego iniciado" : ("No se pudo iniciar: " + reason), !ok);
     }
 
-    private void showStatus(String s, boolean error) {
-        tvStatus.setVisibility(View.VISIBLE);
-        tvStatus.setText(s);
+    private void showResult(String s, boolean error) {
+        tvResult.setVisibility(View.VISIBLE);
+        tvResult.setText(s);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.alongiss.testnetworkyossi;
+package com.alongiss.Alonias;
 
 public class RoomInfo {
     public String code;

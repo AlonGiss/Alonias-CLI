@@ -1,4 +1,4 @@
-package com.alongiss.testnetworkyossi;
+package com.alongiss.Alonias;
 
 import org.junit.Test;
 

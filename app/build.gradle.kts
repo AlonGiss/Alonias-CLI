@@ -3,13 +3,13 @@ plugins {
 }
 
 android {
-    namespace = "com.alongiss.testnetworkyossi"
+    namespace = "com.alongiss.Alonias"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.alongiss.testnetworkyossi"
+        applicationId = "com.alongiss.Alonias"
         minSdk = 30
         targetSdk = 36
         versionCode = 1

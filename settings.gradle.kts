@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "testNetworkYossi"
+rootProject.name = "Alonias"
 include(":app")
  
