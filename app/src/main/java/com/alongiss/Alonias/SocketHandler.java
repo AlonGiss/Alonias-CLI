@@ -18,8 +18,17 @@ public class SocketHandler {
     private static SecretKey voiceKey;
     private static String voiceKeyRoomId;
 
-    public static synchronized void setUsername(String u) { username = u; }
-    public static synchronized String getUsername() { return username; }
+    // TCP coordination
+    private static final Object SEND_LOCK = new Object();
+    private static boolean listenerRunning = false;
+
+    public static synchronized void setUsername(String u) {
+        username = u;
+    }
+
+    public static synchronized String getUsername() {
+        return username;
+    }
 
     public static synchronized Socket getSocket() {
         return socket;
@@ -54,7 +63,10 @@ public class SocketHandler {
     }
 
     public static synchronized boolean readyForEncryptedTraffic() {
-        return serverPublicKey != null && aesKey != null;
+        return socket != null
+                && !socket.isClosed()
+                && serverPublicKey != null
+                && aesKey != null;
     }
 
     public static synchronized void setVoiceKey(String roomId, SecretKey key) {
@@ -78,12 +90,33 @@ public class SocketHandler {
         voiceKeyRoomId = null;
     }
 
+    public static Object getSendLock() {
+        return SEND_LOCK;
+    }
+
+    public static synchronized boolean markListenerStarted() {
+        if (listenerRunning) return false;
+        listenerRunning = true;
+        return true;
+    }
+
+    public static synchronized void markListenerStopped() {
+        listenerRunning = false;
+    }
+
     public static synchronized void reset() {
+        try {
+            if (socket != null) {
+                socket.close();
+            }
+        } catch (Exception ignored) {}
+
         socket = null;
         serverPublicKey = null;
         aesKey = null;
         voiceKey = null;
         voiceKeyRoomId = null;
         handler = null;
+        listenerRunning = false;
     }
 }
