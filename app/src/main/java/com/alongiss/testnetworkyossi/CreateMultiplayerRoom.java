@@ -5,7 +5,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.widget.*;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,7 +21,6 @@ public class CreateMultiplayerRoom extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_create_multiplayer_room);
         socketHandler();
         spinnerUpdate();
@@ -59,7 +61,7 @@ public class CreateMultiplayerRoom extends AppCompatActivity {
         ArrayAdapter<String> playersAdapter = new ArrayAdapter<>(
                 this,
                 R.layout.spinner_item_white,
-                new String[]{"4", "6", "8"}
+                new String[]{"2","  4"}
         );
         playersAdapter.setDropDownViewResource(
                 R.layout.spinner_dropdown_item_white

@@ -72,6 +72,8 @@ public abstract class BaseGameActivity extends AppCompatActivity {
             handleGameResumed(text);
         } else if (text.startsWith("hst~")) {
             handleHostTransfer(text);
+        } else if (text.startsWith("cd~")) {
+            handleCountdown(text);
         } else {
             onOtherMessage(text);
         }
@@ -101,9 +103,43 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     }
 
     // -------------------------------------------------------
+    // cd~roomId~N — Countdown 3, 2, 1 (all players start together)
+    // -------------------------------------------------------
+    private AlertDialog countdownDialog;
+
+    private void handleCountdown(String text) {
+        String[] p = text.split("~");
+        if (p.length < 3) return;
+        if (roomId != null && !roomId.equals(p[1])) return;
+        String n = p[2].trim();
+
+        if (countdownDialog != null && countdownDialog.isShowing()) {
+            countdownDialog.dismiss();
+        }
+        countdownDialog = new AlertDialog.Builder(this)
+                .setTitle("")
+                .setMessage(n)
+                .setCancelable(false)
+                .create();
+        if (countdownDialog.getWindow() != null) {
+            countdownDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        countdownDialog.show();
+        TextView msgView = countdownDialog.findViewById(android.R.id.message);
+        if (msgView != null) {
+            msgView.setTextSize(72);
+            msgView.setGravity(android.view.Gravity.CENTER);
+            msgView.setTextColor(0xFFFFFFFF);
+        }
+    }
+
+    // -------------------------------------------------------
     // upd~roomId~explainer~timeLeft~scoreA~scoreB
     // -------------------------------------------------------
     private void handleUpd(String text) {
+        if (countdownDialog != null && countdownDialog.isShowing()) {
+            countdownDialog.dismiss();
+        }
         String[] p = text.split("~");
         if (p.length < 6) return;
 
@@ -194,7 +230,7 @@ public abstract class BaseGameActivity extends AppCompatActivity {
 
         Toast.makeText(this, "Juego terminado: " + reason, Toast.LENGTH_LONG).show();
 
-        Intent intent = new Intent(this, MainActivity.class);
+        Intent intent = new Intent(this, HomeActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
         finish();
@@ -289,5 +325,6 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (disconnectDialog != null) disconnectDialog.dismiss();
+        if (countdownDialog != null && countdownDialog.isShowing()) countdownDialog.dismiss();
     }
 }

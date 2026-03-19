@@ -6,8 +6,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.view.View;
-import android.widget.Toast;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,6 +22,14 @@ public class LobbyActivity extends AppCompatActivity {
     private String username;
     private boolean isHost;
 
+    /**
+     * FIX SINCRONIZACIÓN: guardamos el mensaje rol~ que puede llegar
+     * antes de que procesemos stg~True. Una vez que confirmamos stg~True
+     * lo procesamos de inmediato.
+     */
+    private boolean gameStartConfirmed = false;
+    private String  pendingRolMessage  = null;
+
     private TextView tvRoom, tvStatus, tvPlayers, tvError;
     private MaterialButton btnStart, btnLeave;
 
@@ -34,13 +42,12 @@ public class LobbyActivity extends AppCompatActivity {
             if (o instanceof byte[]) text = new String((byte[]) o, StandardCharsets.UTF_8);
             else text = String.valueOf(o);
 
-            handleServer(text);
+            handleServer(text.trim());
         }
     };
 
     private final Runnable pollRunnable = new Runnable() {
         @Override public void run() {
-            // pide lista de players del room cada 1s
             send("rpl~" + roomId);
             pollHandler.postDelayed(this, 1000);
         }
@@ -69,11 +76,15 @@ public class LobbyActivity extends AppCompatActivity {
         tvRoom.setText("ROOM: " + roomId);
         tvStatus.setText("Estado: WAITING");
 
-        // Deshabilitado hasta confirmar rol
         btnStart.setEnabled(false);
         btnStart.setAlpha(0.35f);
 
-        btnStart.setOnClickListener(v -> send("stg~" + roomId));
+        btnStart.setOnClickListener(v -> {
+            // Deshabilitar para evitar doble tap
+            btnStart.setEnabled(false);
+            btnStart.setAlpha(0.35f);
+            send("stg~" + roomId);
+        });
 
         btnLeave.setOnClickListener(v -> {
             send("lvr~" + roomId);
@@ -81,12 +92,10 @@ public class LobbyActivity extends AppCompatActivity {
         });
 
         if (fromRematch) {
-            // We stayed in the room (did not leave); just refresh host and start polling
             tvStatus.setText("Estado: WAITING");
             send("rph~" + roomId);
             pollHandler.postDelayed(pollRunnable, 200);
         } else {
-            // Flujo normal: habilitar boton si host y arrancar polling
             btnStart.setEnabled(isHost);
             btnStart.setAlpha(isHost ? 1f : 0.35f);
             pollHandler.postDelayed(pollRunnable, 200);
@@ -99,13 +108,11 @@ public class LobbyActivity extends AppCompatActivity {
 
     private void handleServer(String text) {
 
-        // jnr~ respuesta al re-join desde rematch
-        // jnr~True~roomId~players  o  jnr~False~REASON
+        // ── jnr~ ──────────────────────────────────────────────────────
         if (text.startsWith("jnr~")) {
             String[] p = text.split("~", 4);
             if (p.length >= 2 && "True".equals(p[1])) {
                 tvStatus.setText("Estado: WAITING");
-                // Consultar al servidor si somos el host de esta sala
                 send("rph~" + roomId);
                 pollHandler.postDelayed(pollRunnable, 300);
             } else {
@@ -115,7 +122,7 @@ public class LobbyActivity extends AppCompatActivity {
             return;
         }
 
-        // hst~roomId~newHostUsername — host transfer (when host leaves, server pushes to all)
+        // ── hst~ ──────────────────────────────────────────────────────
         if (text.startsWith("hst~")) {
             String[] p = text.split("~", 3);
             if (p.length >= 3 && roomId.equals(p[1])) {
@@ -130,18 +137,17 @@ public class LobbyActivity extends AppCompatActivity {
             return;
         }
 
-        // lpl~roomId~username — player left (server pushes to refresh list)
+        // ── lpl~ ──────────────────────────────────────────────────────
         if (text.startsWith("lpl~")) {
             String[] p = text.split("~", 3);
             if (p.length >= 3 && roomId.equals(p[1])) {
-                String who = p[2].trim();
-                Toast.makeText(this, who + " left the lobby.", Toast.LENGTH_SHORT).show();
-                send("rpl~" + roomId);  // refresh player list immediately
+                Toast.makeText(this, p[2].trim() + " left the lobby.", Toast.LENGTH_SHORT).show();
+                send("rpl~" + roomId);
             }
             return;
         }
 
-        // rph~ respuesta: rph~roomId~hostUsername — para saber si somos host
+        // ── rph~ ──────────────────────────────────────────────────────
         if (text.startsWith("rph~")) {
             String[] p = text.split("~", 3);
             if (p.length < 3) return;
@@ -152,8 +158,7 @@ public class LobbyActivity extends AppCompatActivity {
             return;
         }
 
-        // players list:
-        // rpl~roomId~user1,user2,user3
+        // ── rpl~ (lista de jugadores) ─────────────────────────────────
         if (text.startsWith("rpl~")) {
             String[] p = text.split("~", 3);
             if (p.length < 3) return;
@@ -173,46 +178,78 @@ public class LobbyActivity extends AppCompatActivity {
             return;
         }
 
-        // start result
+        // ── stg~ ──────────────────────────────────────────────────────
+        // FIX: stg~True puede llegar como broadcast (a todos) o como
+        // respuesta directa (solo al host). En ambos casos marcamos el
+        // flag y procesamos el rol~ pendiente si ya lo teníamos guardado.
         if (text.startsWith("stg~")) {
-            // stg~True OR stg~False~reason
             String[] p = text.split("~");
             boolean ok = (p.length >= 2) && "True".equalsIgnoreCase(p[1]);
-            if (!ok) {
+            if (ok) {
+                tvStatus.setText("Estado: STARTING…");
+                pollHandler.removeCallbacks(pollRunnable);
+                gameStartConfirmed = true;
+
+                // Si ya llegó rol~ antes que stg~True, procesarlo ahora
+                if (pendingRolMessage != null) {
+                    String rol = pendingRolMessage;
+                    pendingRolMessage = null;
+                    processRolMessage(rol);
+                }
+            } else {
                 String reason = (p.length >= 3) ? p[2] : "ERROR";
                 showError("No se pudo iniciar: " + reason);
+                // Re-habilitar botón si somos host
+                btnStart.setEnabled(isHost);
+                btnStart.setAlpha(isHost ? 1f : 0.35f);
             }
             return;
         }
 
-        // role assignment: rol~roomId~ROLE  (llega async)
+        // ── rol~ ──────────────────────────────────────────────────────
+        // FIX: Si todavía no confirmamos stg~True, guardamos el mensaje
+        // para procesarlo en cuanto llegue stg~True. Esto evita la race
+        // condition donde rol~ llega antes de que el lobby sepa que arrancó.
         if (text.startsWith("rol~")) {
-            String[] p = text.split("~");
-            if (p.length < 3) return;
-            if (!roomId.equals(p[1])) return;
-
-            String role = p[2];
-
-            Intent i;
-
-            if ("EXPLAINER".equals(role)) {
-                i = new Intent(this, activity_explainer.class);
-            } else if ("GUESSER".equals(role)) {
-                i = new Intent(this, activity_guesser.class);
+            if (!gameStartConfirmed) {
+                // Guardar para procesar cuando llegue stg~True
+                pendingRolMessage = text;
             } else {
-                i = new Intent(this, activity_spectator.class);
+                processRolMessage(text);
             }
-
-            i.putExtra("roomId", roomId);
-            i.putExtra("username", username);
-            startActivity(i);
-            finish();
+            return;
         }
 
-        // update state: upd~roomId~turnTeam~explainer~endEpoch~score0~score1
+        // ── upd~ ──────────────────────────────────────────────────────
         if (text.startsWith("upd~")) {
             tvStatus.setText("Estado: PLAYING");
         }
+    }
+
+    /**
+     * Navega a la Activity de juego según el rol recibido.
+     * Solo se llama cuando gameStartConfirmed == true.
+     */
+    private void processRolMessage(String text) {
+        String[] p = text.split("~");
+        if (p.length < 3) return;
+        if (!roomId.equals(p[1])) return;
+
+        String role = p[2].trim();
+
+        Intent i;
+        if ("EXPLAINER".equals(role)) {
+            i = new Intent(this, activity_explainer.class);
+        } else if ("GUESSER".equals(role)) {
+            i = new Intent(this, activity_guesser.class);
+        } else {
+            i = new Intent(this, activity_spectator.class);
+        }
+
+        i.putExtra("roomId", roomId);
+        i.putExtra("username", username);
+        startActivity(i);
+        finish();
     }
 
     private void showError(String s) {

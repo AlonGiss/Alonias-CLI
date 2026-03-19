@@ -1,11 +1,13 @@
 package com.alongiss.testnetworkyossi;
 
 import android.util.Base64;
+
 import java.nio.ByteBuffer;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.X509EncodedKeySpec;
+
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;

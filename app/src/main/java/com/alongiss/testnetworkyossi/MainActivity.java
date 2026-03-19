@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -17,6 +16,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -144,7 +145,11 @@ public class MainActivity extends AppCompatActivity {
         socketHandler = new Handler(Looper.getMainLooper()) {
             @Override
             public void handleMessage(@NonNull Message msg) {
-                String response = new String((byte[]) msg.obj).trim();
+                if (msg.obj == null) return;
+                String response = (msg.obj instanceof byte[])
+                        ? new String((byte[]) msg.obj, StandardCharsets.UTF_8)
+                        : String.valueOf(msg.obj);
+                response = response.trim();
 
                 if (response.equalsIgnoreCase("log~True")) {
                     Toast.makeText(

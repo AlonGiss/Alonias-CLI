@@ -2,14 +2,19 @@ package com.alongiss.testnetworkyossi;
 
 import android.os.Handler;
 import android.os.Message;
+import android.util.Base64;
 import android.util.Log;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class tcp_send_recv implements Runnable {
 
@@ -35,7 +40,6 @@ public class tcp_send_recv implements Runnable {
                 new Thread(new Listener(sk)).start();
             }
 
-            // wait until AES ready (after PUB exchange)
             while (!SocketHandler.readyForEncryptedTraffic()) {
                 Thread.sleep(10);
             }
@@ -43,7 +47,7 @@ public class tcp_send_recv implements Runnable {
             SecretKey aes = SocketHandler.getAesKey();
             byte[] encrypted = CryptoUtils.aesEncrypt(aes, plainPayload);
 
-            sendFrame(sk, concat("DATA|".getBytes(), encrypted));
+            sendFrame(sk, concat("DATA|".getBytes(StandardCharsets.US_ASCII), encrypted));
 
         } catch (Exception e) {
             Log.e("TCP", "Send error", e);
@@ -53,7 +57,7 @@ public class tcp_send_recv implements Runnable {
     private void sendFrame(Socket sk, byte[] payload) throws IOException {
         String header = String.format(Locale.US, "%09d|", payload.length);
         OutputStream out = sk.getOutputStream();
-        out.write(header.getBytes());
+        out.write(header.getBytes(StandardCharsets.US_ASCII));
         out.write(payload);
         out.flush();
     }
@@ -78,12 +82,13 @@ public class tcp_send_recv implements Runnable {
                 while (true) {
                     byte[] header = new byte[LEN_SIZE + 1];
                     dis.readFully(header);
-                    int len = Integer.parseInt(new String(header, 0, LEN_SIZE));
+                    int len = Integer.parseInt(new String(header, 0, LEN_SIZE, StandardCharsets.US_ASCII));
+
                     byte[] payload = new byte[len];
                     dis.readFully(payload);
 
                     if (startsWith(payload, "PUB|")) {
-                        String base64Key = new String(payload, 4, payload.length - 4);
+                        String base64Key = new String(payload, 4, payload.length - 4, StandardCharsets.UTF_8);
                         SocketHandler.setServerPublicKey(
                                 CryptoUtils.parseRsaPublicKey(base64Key)
                         );
@@ -97,7 +102,7 @@ public class tcp_send_recv implements Runnable {
                         );
 
                         sendFrame(SocketHandler.getSocket(),
-                                concat("KEY|".getBytes(), encAes)
+                                concat("KEY|".getBytes(StandardCharsets.US_ASCII), encAes)
                         );
                         continue;
                     }
@@ -107,6 +112,25 @@ public class tcp_send_recv implements Runnable {
                                 SocketHandler.getAesKey(),
                                 slice(payload, 5)
                         );
+
+                        String text = new String(decrypted, StandardCharsets.UTF_8);
+
+                        // Voice key frame: vky~roomId~base64AesKey
+                        if (text.startsWith("vky~")) {
+                            try {
+                                String[] p = text.split("~", 3);
+                                if (p.length >= 3) {
+                                    String roomId = p[1];
+                                    byte[] rawKey = Base64.decode(p[2], Base64.DEFAULT);
+                                    SecretKey voiceKey = new SecretKeySpec(rawKey, "AES");
+                                    SocketHandler.setVoiceKey(roomId, voiceKey);
+                                    Log.d("TCP", "Voice key received for room " + roomId);
+                                }
+                            } catch (Exception e) {
+                                Log.e("TCP", "Failed to parse voice key frame", e);
+                            }
+                            continue;
+                        }
 
                         Handler h = SocketHandler.getHandler();
                         if (h != null) {
@@ -125,8 +149,9 @@ public class tcp_send_recv implements Runnable {
         private boolean startsWith(byte[] d, String s) {
             byte[] p = s.getBytes(StandardCharsets.US_ASCII);
             if (d.length < p.length) return false;
-            for (int i = 0; i < p.length; i++)
+            for (int i = 0; i < p.length; i++) {
                 if (d[i] != p[i]) return false;
+            }
             return true;
         }
 

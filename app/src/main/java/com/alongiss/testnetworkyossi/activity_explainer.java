@@ -14,7 +14,9 @@ public class activity_explainer extends BaseGameActivity {
     private TextView tvRoomInfo;
     private TextView tvStatus;
     private MaterialButton btnSkip;
-    private MaterialButton btnEndTurn;
+    private MaterialButton btnMuteVoice;
+
+    private VoiceChatManager voiceChat;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -30,18 +32,26 @@ public class activity_explainer extends BaseGameActivity {
         tvStatus  = findViewById(R.id.tvStatus);
 
         btnSkip    = findViewById(R.id.btnSkip);
-        btnEndTurn = findViewById(R.id.btnEndTurn);
+        btnMuteVoice = findViewById(R.id.btnMuteVoice);
 
         tvRoomInfo.setText("ROOM: " + roomId + "  •  TU TURNO");
+
+        // Explainer puede hablar
+        voiceChat = new VoiceChatManager(this,roomId, myUsername, true);
+        voiceChat.start();
 
         btnSkip.setOnClickListener(v -> {
             sendToServer("skp~" + roomId);
             showStatus("Skip enviado...", false);
         });
 
-        btnEndTurn.setOnClickListener(v -> {
-            sendToServer("end~" + roomId);
-            showStatus("Fin de turno enviado...", false);
+
+
+        btnMuteVoice.setOnClickListener(v -> {
+            if (voiceChat == null) return;
+            boolean nowMuted = !voiceChat.isMuted();
+            voiceChat.setMuted(nowMuted);
+            btnMuteVoice.setText(nowMuted ? "UNMUTE VOZ" : "MUTE VOZ");
         });
     }
 
@@ -55,12 +65,10 @@ public class activity_explainer extends BaseGameActivity {
             tvRoomInfo.setText("ROOM: " + roomId + "  •  NO ES TU TURNO");
             tvWord.setText("—");
             btnSkip.setEnabled(false);
-            btnEndTurn.setEnabled(false);
             showStatus("Ahora explica: " + explainer, false);
         } else {
             tvRoomInfo.setText("ROOM: " + roomId + "  •  TU TURNO");
             btnSkip.setEnabled(true);
-            btnEndTurn.setEnabled(true);
         }
     }
 
@@ -83,5 +91,14 @@ public class activity_explainer extends BaseGameActivity {
     private void showStatus(String s, boolean error) {
         tvStatus.setVisibility(View.VISIBLE);
         tvStatus.setText(s);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (voiceChat != null) {
+            voiceChat.stop();
+            voiceChat = null;
+        }
     }
 }

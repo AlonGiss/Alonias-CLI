@@ -16,6 +16,9 @@ public class activity_guesser extends BaseGameActivity {
     private EditText etGuess;
     private MaterialButton btnSendGuess;
     private TextView tvResult;
+    private MaterialButton btnMuteVoice;
+
+    private VoiceChatManager voiceChat;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -31,14 +34,26 @@ public class activity_guesser extends BaseGameActivity {
         etGuess     = findViewById(R.id.etGuess);
         btnSendGuess = findViewById(R.id.btnSendGuess);
         tvResult    = findViewById(R.id.tvResult);
+        btnMuteVoice = findViewById(R.id.btnMuteVoice);
 
         tvRoomInfo.setText("ROOM: " + roomId);
+
+        // Guessers pueden hablar
+        voiceChat = new VoiceChatManager(this,roomId, myUsername, true);
+        voiceChat.start();
 
         btnSendGuess.setOnClickListener(v -> {
             String guess = etGuess.getText().toString().trim();
             if (guess.isEmpty()) return;
             // gss~roomId~guessText
             sendToServer("gss~" + roomId + "~" + guess);
+        });
+
+        btnMuteVoice.setOnClickListener(v -> {
+            if (voiceChat == null) return;
+            boolean nowMuted = !voiceChat.isMuted();
+            voiceChat.setMuted(nowMuted);
+            btnMuteVoice.setText(nowMuted ? "UNMUTE VOZ" : "MUTE VOZ");
         });
     }
 
@@ -77,5 +92,14 @@ public class activity_guesser extends BaseGameActivity {
     private void showResult(String s, boolean error) {
         tvResult.setVisibility(View.VISIBLE);
         tvResult.setText(s);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (voiceChat != null) {
+            voiceChat.stop();
+            voiceChat = null;
+        }
     }
 }

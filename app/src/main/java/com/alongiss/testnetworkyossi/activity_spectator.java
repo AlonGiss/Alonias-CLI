@@ -14,6 +14,9 @@ public class activity_spectator extends BaseGameActivity {
     private TextView tvTurnInfo;
     private TextView tvStatus;
     private MaterialButton btnLeave;
+    private MaterialButton btnMuteVoice;
+
+    private VoiceChatManager voiceChat;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -28,10 +31,22 @@ public class activity_spectator extends BaseGameActivity {
         tvTurnInfo = findViewById(R.id.tvTurnInfo);
         tvStatus   = findViewById(R.id.tvStatus);
         btnLeave   = findViewById(R.id.btnLeave);
+        btnMuteVoice = findViewById(R.id.btnMuteVoice);
 
         tvRoomInfo.setText("ROOM: " + roomId);
 
+        // Espectador solo escucha
+        voiceChat = new VoiceChatManager(this,roomId, myUsername, false);
+        voiceChat.start();
+
         btnLeave.setOnClickListener(v -> finish());
+
+        btnMuteVoice.setOnClickListener(v -> {
+            if (voiceChat == null) return;
+            boolean nowMuted = !voiceChat.isMuted();
+            voiceChat.setMuted(nowMuted);
+            btnMuteVoice.setText(nowMuted ? "UNMUTE VOZ" : "MUTE VOZ");
+        });
     }
 
     // FIX: firma actualizada — timeLeft en vez de endEpoch
@@ -58,5 +73,14 @@ public class activity_spectator extends BaseGameActivity {
     private void showStatus(String s) {
         tvStatus.setVisibility(View.VISIBLE);
         tvStatus.setText(s);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (voiceChat != null) {
+            voiceChat.stop();
+            voiceChat = null;
+        }
     }
 }

@@ -1,8 +1,10 @@
 package com.alongiss.testnetworkyossi;
 
 import android.os.Bundle;
-import android.util.Log;
-import android.widget.*;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 public class CreateSingleRoom extends AppCompatActivity {

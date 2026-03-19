@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <application
         android:allowBackup="true"
@@ -14,13 +16,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TestNetworkYossi">
         <activity
-            android:name=".ActivitySingleplayer"
-            android:exported="false" />
-        <activity
             android:name=".game_over"
             android:exported="false" />
         <activity
             android:name=".LobbyActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ActivitySingleplayer"
             android:exported="false" />
         <activity
             android:name=".activity_spectator"
@@ -41,7 +43,7 @@
             android:name=".JoinRoom"
             android:exported="false" />
         <activity
-            android:name=".RoomMenu"
+            android:name=".RoomInfo"
             android:exported="false" />
         <activity
             android:name=".HomeActivity"

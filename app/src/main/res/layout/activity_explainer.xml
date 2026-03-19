@@ -141,16 +141,18 @@
             app:rippleColor="@android:color/transparent"/>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnEndTurn"
+            android:id="@+id/btnMuteVoice"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginTop="10dp"
             android:background="@drawable/bg_button_red"
-            android:text="TERMINAR TURNO"
+            android:text="MUTE VOZ"
             android:textColor="#FFFFFF"
             android:textStyle="bold"
             app:backgroundTint="@null"
             app:rippleColor="@android:color/transparent"/>
+
+
 
         <!-- ERROR / STATUS -->
         <TextView
