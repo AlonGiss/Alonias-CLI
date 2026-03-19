@@ -48,9 +48,22 @@ public class VoiceChatManager {
     private static final int SPEAKING_HANGOVER_FRAMES = 12; // ~240 ms
 
     // Volúmenes del playback
-    private static final float PLAYBACK_VOLUME_SPEAKER_IDLE = 0.55f;
+    private static final float PLAYBACK_VOLUME_SPEAKER_IDLE   = 0.55f;
     private static final float PLAYBACK_VOLUME_SPEAKER_DUCKED = 0.08f;
-    private static final float PLAYBACK_VOLUME_SPECTATOR = 1.0f;
+    private static final float PLAYBACK_VOLUME_SPECTATOR      = 1.0f;
+
+    /**
+     * FIX IMPORTANTE:
+     * Como al cambiar de Activity el manager nuevo puede arrancar ANTES de que
+     * el viejo haga onDestroy()/stop(), el viejo NO debe restaurar el audio si
+     * ya existe uno más nuevo activo.
+     *
+     * latestRoutingOwnerToken identifica al manager más reciente que configuró audio.
+     * Solo ese manager puede restaurarlo al hacer stop().
+     */
+    private static final Object ROUTING_LOCK = new Object();
+    private static long routingTokenCounter = 0L;
+    private static long latestRoutingOwnerToken = 0L;
 
     private final Context appContext;
     private final String  roomId;
@@ -72,6 +85,9 @@ public class VoiceChatManager {
 
     private int previousMode = AudioManager.MODE_NORMAL;
     private boolean previousSpeakerphoneOn = false;
+
+    // Token de este manager para ownership del audio routing
+    private long myRoutingToken = 0L;
 
     // Estado compartido para ducking de speaker mientras hablo
     private volatile boolean localSpeechLikely = false;
@@ -139,7 +155,7 @@ public class VoiceChatManager {
             playbackTrack = null;
         }
 
-        restoreAudioRouting();
+        restoreAudioRoutingIfOwner();
         Log.d(TAG, "VoiceChatManager stopped");
     }
 
@@ -163,33 +179,65 @@ public class VoiceChatManager {
                 return;
             }
 
-            previousMode = audioManager.getMode();
-            previousSpeakerphoneOn = audioManager.isSpeakerphoneOn();
+            synchronized (ROUTING_LOCK) {
+                previousMode = audioManager.getMode();
+                previousSpeakerphoneOn = audioManager.isSpeakerphoneOn();
+
+                myRoutingToken = ++routingTokenCounter;
+                latestRoutingOwnerToken = myRoutingToken;
+            }
 
             if (canSpeak) {
                 // Seguimos en modo comunicación para favorecer AEC,
                 // PERO con speaker ON para usar siempre altavoz.
                 audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
                 audioManager.setSpeakerphoneOn(true);
-                Log.d(TAG, "Audio routing configured: MODE_IN_COMMUNICATION + speaker ON");
+                Log.d(TAG, "Audio routing configured: MODE_IN_COMMUNICATION + speaker ON"
+                        + " token=" + myRoutingToken
+                        + " prevMode=" + previousMode
+                        + " prevSpeaker=" + previousSpeakerphoneOn);
             } else {
                 audioManager.setMode(AudioManager.MODE_NORMAL);
                 audioManager.setSpeakerphoneOn(true);
-                Log.d(TAG, "Audio routing configured: MODE_NORMAL + speaker ON");
+                Log.d(TAG, "Audio routing configured: MODE_NORMAL + speaker ON"
+                        + " token=" + myRoutingToken
+                        + " prevMode=" + previousMode
+                        + " prevSpeaker=" + previousSpeakerphoneOn);
             }
         } catch (Exception e) {
             Log.e(TAG, "configureAudioRouting failed", e);
         }
     }
 
-    private void restoreAudioRouting() {
+    /**
+     * Solo restaura si este manager sigue siendo el dueño más reciente del routing.
+     * Si ya arrancó otro manager nuevo, NO tocamos nada para no romperle el audio.
+     */
+    private void restoreAudioRoutingIfOwner() {
         try {
             if (audioManager == null) return;
+
+            boolean iAmLatestOwner;
+            synchronized (ROUTING_LOCK) {
+                iAmLatestOwner = (myRoutingToken != 0L && myRoutingToken == latestRoutingOwnerToken);
+            }
+
+            if (!iAmLatestOwner) {
+                Log.d(TAG, "Skipping audio routing restore because a newer manager owns it."
+                        + " myToken=" + myRoutingToken
+                        + " latestToken=" + latestRoutingOwnerToken);
+                return;
+            }
+
             audioManager.setSpeakerphoneOn(previousSpeakerphoneOn);
             audioManager.setMode(previousMode);
-            Log.d(TAG, "Audio routing restored");
+
+            Log.d(TAG, "Audio routing restored by owner"
+                    + " token=" + myRoutingToken
+                    + " -> mode=" + previousMode
+                    + " speaker=" + previousSpeakerphoneOn);
         } catch (Exception e) {
-            Log.e(TAG, "restoreAudioRouting failed", e);
+            Log.e(TAG, "restoreAudioRoutingIfOwner failed", e);
         }
     }
 
