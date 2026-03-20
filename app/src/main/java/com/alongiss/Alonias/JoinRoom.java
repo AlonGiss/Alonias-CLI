@@ -51,6 +51,7 @@ public class JoinRoom extends AppCompatActivity {
         rvRooms.setAdapter(adapter);
 
         attachRecyclerClick();
+
         lobbytimer = new Timer();
         lobbytimer.schedule(new java.util.TimerTask() {
             @Override
@@ -84,10 +85,10 @@ public class JoinRoom extends AppCompatActivity {
             }
 
             @Override
-            public void onTouchEvent(RecyclerView rv, MotionEvent e) { }
+            public void onTouchEvent(RecyclerView rv, MotionEvent e) {}
 
             @Override
-            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) { }
+            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {}
         });
     }
 
@@ -97,11 +98,11 @@ public class JoinRoom extends AppCompatActivity {
         RoomInfo room = roomsData.get(position);
 
         if (!"WAITING".equalsIgnoreCase(room.status)) {
-            Toast.makeText(this, "Room not available", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "This room is not available.", Toast.LENGTH_SHORT).show();
             return;
         }
         if (room.count >= room.max) {
-            Toast.makeText(this, "Room is full", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "This room is full.", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -114,8 +115,8 @@ public class JoinRoom extends AppCompatActivity {
         input.setHint("Password");
 
         new AlertDialog.Builder(this)
-                .setTitle("Room locked")
-                .setMessage("Enter password for " + room.name)
+                .setTitle("Locked room")
+                .setMessage("Enter the password for " + room.name)
                 .setView(input)
                 .setPositiveButton("Join", (d, w) -> {
                     String pass = input.getText().toString();
@@ -149,8 +150,10 @@ public class JoinRoom extends AppCompatActivity {
             return;
         }
 
-        if (text.startsWith("err~NOT_LOGGED")) {
-            Toast.makeText(this, "Not logged in", Toast.LENGTH_SHORT).show();
+        if (text.startsWith("err~")) {
+            String[] p = text.split("~", 2);
+            String reason = p.length >= 2 ? p[1] : "";
+            Toast.makeText(this, ClientMessageUtils.genericServerError(reason), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -159,7 +162,7 @@ public class JoinRoom extends AppCompatActivity {
         if (p.length < 2) return;
 
         if (!"True".equals(p[1])) {
-            Toast.makeText(this, "Failed to load rooms", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Could not load rooms.", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -174,8 +177,8 @@ public class JoinRoom extends AppCompatActivity {
                     RoomInfo info = parseRoomItem(item);
                     if (info != null) {
                         roomsData.add(info);
-                        String line = info.name + " (" + info.count + "/" + info.max + ")  " +
-                                info.code + (info.locked ? " 🔒" : "");
+                        String line = info.name + " (" + info.count + "/" + info.max + ")  "
+                                + info.code + (info.locked ? " 🔒" : "");
                         roomsText.add(line);
                     }
                 }
@@ -208,13 +211,13 @@ public class JoinRoom extends AppCompatActivity {
 
         if ("True".equals(p[1])) {
             if (p.length < 3) {
-                Toast.makeText(this, "Join OK (no roomId?)", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, ClientMessageUtils.unexpectedResponseMessage(), Toast.LENGTH_SHORT).show();
                 return;
             }
 
             String roomId = p[2];
 
-            Toast.makeText(this, "Joined! roomId=" + roomId, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, ClientMessageUtils.roomJoinSuccessMessage(), Toast.LENGTH_SHORT).show();
             lobbytimer.cancel();
 
             Intent i = new Intent(this, LobbyActivity.class);
@@ -224,34 +227,9 @@ public class JoinRoom extends AppCompatActivity {
             startActivity(i);
             finish();
         } else {
-            String reason = (p.length >= 3) ? p[2] : "UNKNOWN";
-            Toast.makeText(this, mapJoinReason(reason), Toast.LENGTH_LONG).show();
+            String reason = p.length >= 3 ? p[2] : "UNKNOWN";
+            Toast.makeText(this, ClientMessageUtils.roomJoinMessage(reason), Toast.LENGTH_LONG).show();
         }
-    }
-
-    private String mapJoinReason(String reason) {
-        if ("NO_ROOM".equalsIgnoreCase(reason)) {
-            return "La sala ya no existe.";
-        }
-        if ("ROOM_NOT_WAITING".equalsIgnoreCase(reason)) {
-            return "La sala ya empezó.";
-        }
-        if ("BAD_PASSWORD".equalsIgnoreCase(reason)) {
-            return "Contraseña incorrecta.";
-        }
-        if ("ROOM_FULL".equalsIgnoreCase(reason)) {
-            return "La sala está llena.";
-        }
-        if ("USERNAME_ALREADY_IN_ROOM".equalsIgnoreCase(reason)) {
-            return "Ese usuario ya está dentro de esa sala.";
-        }
-        if ("ALREADY_IN_OTHER_ROOM".equalsIgnoreCase(reason)) {
-            return "Ese usuario ya está en otra sala.";
-        }
-        if ("NO_USER".equalsIgnoreCase(reason)) {
-            return "Usuario inválido.";
-        }
-        return "No se pudo entrar: " + reason;
     }
 
     @Override

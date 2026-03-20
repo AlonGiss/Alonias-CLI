@@ -18,49 +18,39 @@ public class CreateSingleRoom extends AppCompatActivity {
     }
 
     private void spinnerUpdate() {
-
-        // ===== Difficulty =====
         Spinner spDifficulty = findViewById(R.id.spDifficulty);
         ArrayAdapter<String> diffAdapter = new ArrayAdapter<>(
                 this,
                 R.layout.spinner_item_white,
                 new String[]{"Easy", "Medium", "Hard"}
         );
-        diffAdapter.setDropDownViewResource(
-                R.layout.spinner_dropdown_item_white
-        );
+        diffAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
         spDifficulty.setAdapter(diffAdapter);
 
-
-        // ===== Round Time =====
         Spinner spRoundTime = findViewById(R.id.spRoundTime);
         ArrayAdapter<String> timeAdapter = new ArrayAdapter<>(
                 this,
                 R.layout.spinner_item_white,
                 new String[]{"30", "60", "90", "120"}
         );
-        timeAdapter.setDropDownViewResource(
-                R.layout.spinner_dropdown_item_white
-        );
+        timeAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
         spRoundTime.setAdapter(timeAdapter);
     }
-
 
     private void create() {
         Spinner spTime = findViewById(R.id.spRoundTime);
         Spinner sp = findViewById(R.id.spDifficulty);
 
         if (spTime.getSelectedItem().toString().isEmpty()) {
-
-            toast("Fill all fields");
+            toast("Please fill in all fields.");
             return;
         }
 
         int time = Integer.parseInt(spTime.getSelectedItem().toString());
         String difficulty = sp.getSelectedItem().toString();
 
-        toast("Single game started (" + difficulty + ")");
-        // Lanzar modo singleplayer simple (sin sala en servidor)
+        toast("Single-player match started (" + difficulty + ").");
+
         android.content.Intent i = new android.content.Intent(this, ActivitySingleplayer.class);
         i.putExtra("difficulty", difficulty);
         i.putExtra("roundTime", time);
@@ -70,5 +60,4 @@ public class CreateSingleRoom extends AppCompatActivity {
     private void toast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
-
 }

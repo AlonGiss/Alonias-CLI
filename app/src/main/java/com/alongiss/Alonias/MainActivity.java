@@ -23,17 +23,14 @@ public class MainActivity extends AppCompatActivity {
 
     private Handler socketHandler;
 
-    // UI
     private LinearLayout loginCard;
     private EditText etUser, etPass, etConfirmPass;
     private Button btnLogin;
     private TextView tvSwitchMode;
     private TextView tvError;
 
-    // STATE
     private boolean isSignupMode = false;
 
-    // ANIMATIONS
     private Animation dropAnim, bounceAnim, shakeAnim, buttonPressAnim;
 
     @Override
@@ -144,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 loginCard.startAnimation(shakeAnim);
-                showError("Respuesta inesperada del servidor");
+                showError(ClientMessageUtils.unexpectedResponseMessage());
             }
         };
     }
@@ -153,13 +150,13 @@ public class MainActivity extends AppCompatActivity {
         String[] p = response.split("~", 3);
         if (p.length < 2) {
             loginCard.startAnimation(shakeAnim);
-            showError("Respuesta inválida del servidor");
+            showError(ClientMessageUtils.unexpectedResponseMessage());
             return;
         }
 
         String code = p[0];
         boolean ok = "True".equalsIgnoreCase(p[1]);
-        String reason = (p.length >= 3) ? p[2].trim() : "";
+        String reason = p.length >= 3 ? p[2] : "";
 
         if (ok) {
             String user = etUser.getText().toString().trim();
@@ -167,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
 
             Toast.makeText(
                     MainActivity.this,
-                    "reg".equals(code) ? "Account created!" : "Login successful",
+                    ClientMessageUtils.authSuccessMessage(code),
                     Toast.LENGTH_SHORT
             ).show();
 
@@ -177,23 +174,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         loginCard.startAnimation(shakeAnim);
-        showError(mapAuthReason(code, reason));
-    }
-
-    private String mapAuthReason(String code, String reason) {
-        if ("ALREADY_CONNECTED".equalsIgnoreCase(reason)) {
-            return "Ese usuario ya está conectado.";
-        }
-        if ("BAD_CREDENTIALS".equalsIgnoreCase(reason)) {
-            return "Usuario o contraseña incorrectos.";
-        }
-        if ("USER_EXISTS".equalsIgnoreCase(reason)) {
-            return "Ese usuario ya existe.";
-        }
-        if ("BAD_FORMAT".equalsIgnoreCase(reason)) {
-            return "Datos inválidos.";
-        }
-        return "reg".equals(code) ? "No se pudo crear la cuenta." : "No se pudo iniciar sesión.";
+        showError(ClientMessageUtils.authMessage(code, reason));
     }
 
     private void showError(String text) {

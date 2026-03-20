@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -51,16 +52,17 @@ public class ActivitySingleplayer extends AppCompatActivity {
         setContentView(R.layout.activity_singleplayer);
         SocketHandler.setHandler(netHandler);
 
-        tvWord   = findViewById(R.id.tvWordSingle);
-        tvScore  = findViewById(R.id.tvScoreSingle);
-        tvTimer  = findViewById(R.id.tvTimerSingle);
+        tvWord = findViewById(R.id.tvWordSingle);
+        tvScore = findViewById(R.id.tvScoreSingle);
+        tvTimer = findViewById(R.id.tvTimerSingle);
         btnCorrect = findViewById(R.id.btnCorrect);
-        btnSkip    = findViewById(R.id.btnSkipSingle);
+        btnSkip = findViewById(R.id.btnSkipSingle);
 
         difficulty = getIntent().getStringExtra("difficulty");
         if (difficulty == null || difficulty.isEmpty()) {
             difficulty = "Easy";
         }
+
         roundTimeSec = getIntent().getIntExtra("roundTime", 60);
         if (roundTimeSec <= 0) roundTimeSec = 60;
 
@@ -81,12 +83,19 @@ public class ActivitySingleplayer extends AppCompatActivity {
 
     private void onServerMessage(String text) {
         text = text.trim();
+
         if (text.startsWith("wrd~")) {
             String[] p = text.split("~", 3);
             if (p.length >= 3) {
-                String word = p[2];
-                tvWord.setText(word);
+                tvWord.setText(p[2]);
             }
+            return;
+        }
+
+        if (text.startsWith("err~")) {
+            String[] p = text.split("~", 2);
+            String reason = p.length >= 2 ? p[1] : "";
+            Toast.makeText(this, ClientMessageUtils.singleplayerError(reason), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -100,24 +109,24 @@ public class ActivitySingleplayer extends AppCompatActivity {
     }
 
     private void updateTimerUI() {
-        // Reutiliza el formato ya existente en BaseGameActivity (misma package)
         String t = BaseGameActivity.formatSeconds(timeLeftSec);
         tvTimer.setText(t);
     }
 
     private void resetAndStartGame() {
-        // cerrar dialog si estaba
         if (timeUpDialog != null && timeUpDialog.isShowing()) {
             timeUpDialog.dismiss();
         }
+
         score = 0;
         timeLeftSec = roundTimeSec;
         updateScoreUI();
         updateTimerUI();
 
-        // Reiniciar estado server-side (score/used) y pedir primera palabra
         sendToServer("spr~" + difficulty);
         sendToServer("spw~" + difficulty);
+
+        Toast.makeText(this, ClientMessageUtils.singleplayerStartedMessage(), Toast.LENGTH_SHORT).show();
 
         startTimer();
     }
@@ -153,17 +162,17 @@ public class ActivitySingleplayer extends AppCompatActivity {
         btnCorrect.setEnabled(false);
         btnSkip.setEnabled(false);
 
-        String msg = String.format(Locale.US, "Puntaje: %d", score);
+        String msg = String.format(Locale.US, "Score: %d", score);
         timeUpDialog = new AlertDialog.Builder(this)
-                .setTitle("Tiempo terminado")
+                .setTitle("Time is up")
                 .setMessage(msg)
                 .setCancelable(false)
-                .setPositiveButton("Volver a jugar", (d, w) -> {
+                .setPositiveButton("Play again", (d, w) -> {
                     btnCorrect.setEnabled(true);
                     btnSkip.setEnabled(true);
                     resetAndStartGame();
                 })
-                .setNegativeButton("Salir", (d, w) -> {
+                .setNegativeButton("Exit", (d, w) -> {
                     Intent i = new Intent(ActivitySingleplayer.this, HomeActivity.class);
                     i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(i);
@@ -182,4 +191,3 @@ public class ActivitySingleplayer extends AppCompatActivity {
         }
     }
 }
-

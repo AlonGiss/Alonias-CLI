@@ -25,27 +25,24 @@ public class activity_guesser extends BaseGameActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_guesser);
 
-        tvTimer  = findViewById(R.id.tvTimer);
+        tvTimer = findViewById(R.id.tvTimer);
         tvScoreA = findViewById(R.id.tvScoreYou);
         tvScoreB = findViewById(R.id.tvScoreOther);
 
-        tvRoomInfo  = findViewById(R.id.tvRoomInfo);
-        //tvExplainer = findViewById(R.id.tvExplainer);
-        etGuess     = findViewById(R.id.etGuess);
+        tvRoomInfo = findViewById(R.id.tvRoomInfo);
+        etGuess = findViewById(R.id.etGuess);
         btnSendGuess = findViewById(R.id.btnSendGuess);
-        tvResult    = findViewById(R.id.tvResult);
+        tvResult = findViewById(R.id.tvResult);
         btnMuteVoice = findViewById(R.id.btnMuteVoice);
 
         tvRoomInfo.setText("ROOM: " + roomId);
 
-        // Guessers pueden hablar
-        voiceChat = new VoiceChatManager(this,roomId, myUsername, true);
+        voiceChat = new VoiceChatManager(this, roomId, myUsername, true);
         voiceChat.start();
 
         btnSendGuess.setOnClickListener(v -> {
             String guess = etGuess.getText().toString().trim();
             if (guess.isEmpty()) return;
-            // gss~roomId~guessText
             sendToServer("gss~" + roomId + "~" + guess);
         });
 
@@ -53,40 +50,38 @@ public class activity_guesser extends BaseGameActivity {
             if (voiceChat == null) return;
             boolean nowMuted = !voiceChat.isMuted();
             voiceChat.setMuted(nowMuted);
-            btnMuteVoice.setText(nowMuted ? "UNMUTE VOZ" : "MUTE VOZ");
+            btnMuteVoice.setText(nowMuted ? "UNMUTE VOICE" : "MUTE VOICE");
+            showResult(ClientMessageUtils.voiceChatMutedMessage(nowMuted), false);
         });
     }
 
-    // FIX: firma actualizada — timeLeft en vez de endEpoch
     @Override
     protected void onUpd(String explainer, int timeLeft, int scoreA, int scoreB) {
-        //tvExplainer.setText("EXPLICA: " + explainer);
 
         boolean amIExplainer = myUsername != null && myUsername.equals(explainer);
         btnSendGuess.setEnabled(!amIExplainer);
         if (amIExplainer) {
-            showResult("Ahora sos explicador.", true);
+            showResult("You are the explainer now.", true);
         }
     }
 
     @Override
     protected void onWord(String word) {
-        // Guessers no reciben la palabra
     }
 
     @Override
     protected void onGuessResult(boolean correct) {
         if (correct) {
-            showResult("✅ CORRECTO!", false);
+            showResult(ClientMessageUtils.guessMessage(true), false);
             etGuess.setText("");
         } else {
-            showResult("❌ NO", true);
+            showResult(ClientMessageUtils.guessMessage(false), true);
         }
     }
 
     @Override
     protected void onStartResult(boolean ok, String reason) {
-        showResult(ok ? "Juego iniciado" : ("No se pudo iniciar: " + reason), !ok);
+        showResult(ok ? ClientMessageUtils.lobbyStartSuccessMessage() : ClientMessageUtils.lobbyStartMessage(reason), !ok);
     }
 
     private void showResult(String s, boolean error) {

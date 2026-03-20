@@ -26,8 +26,8 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     protected TextView tvScoreA;
     protected TextView tvScoreB;
 
-    // Dialog que mostramos cuando alguien se desconecta (para poder cerrarlo después)
     private AlertDialog disconnectDialog;
+    private AlertDialog countdownDialog;
 
     protected final Handler netHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -44,7 +44,7 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        roomId     = getIntent().getStringExtra("roomId");
+        roomId = getIntent().getStringExtra("roomId");
         myUsername = getIntent().getStringExtra("username");
         SocketHandler.setHandler(netHandler);
     }
@@ -74,38 +74,34 @@ public abstract class BaseGameActivity extends AppCompatActivity {
             handleHostTransfer(text);
         } else if (text.startsWith("cd~")) {
             handleCountdown(text);
+        } else if (text.startsWith("err~")) {
+            String[] p = text.split("~", 2);
+            String reason = p.length >= 2 ? p[1] : "";
+            Toast.makeText(this, ClientMessageUtils.genericServerError(reason), Toast.LENGTH_SHORT).show();
         } else {
             onOtherMessage(text);
         }
     }
 
-    // -------------------------------------------------------
-    // rol~roomId~EXPLAINER|GUESSER|SPECTATOR
-    // -------------------------------------------------------
     private void handleRolChange(String text) {
         String[] p = text.split("~");
         if (p.length < 3) return;
         String newRol = p[2].trim();
 
         Class<?> activityClass;
-        if ("EXPLAINER".equals(newRol))    activityClass = activity_explainer.class;
+        if ("EXPLAINER".equals(newRol)) activityClass = activity_explainer.class;
         else if ("GUESSER".equals(newRol)) activityClass = activity_guesser.class;
-        else                                activityClass = activity_spectator.class;
+        else activityClass = activity_spectator.class;
 
         if (!this.getClass().equals(activityClass)) {
             Intent intent = new Intent(this, activityClass);
-            intent.putExtra("roomId",   roomId);
+            intent.putExtra("roomId", roomId);
             intent.putExtra("username", myUsername);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(intent);
             finish();
         }
     }
-
-    // -------------------------------------------------------
-    // cd~roomId~N — Countdown 3, 2, 1 (all players start together)
-    // -------------------------------------------------------
-    private AlertDialog countdownDialog;
 
     private void handleCountdown(String text) {
         String[] p = text.split("~");
@@ -116,15 +112,19 @@ public abstract class BaseGameActivity extends AppCompatActivity {
         if (countdownDialog != null && countdownDialog.isShowing()) {
             countdownDialog.dismiss();
         }
+
         countdownDialog = new AlertDialog.Builder(this)
                 .setTitle("")
                 .setMessage(n)
                 .setCancelable(false)
                 .create();
+
         if (countdownDialog.getWindow() != null) {
             countdownDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
+
         countdownDialog.show();
+
         TextView msgView = countdownDialog.findViewById(android.R.id.message);
         if (msgView != null) {
             msgView.setTextSize(72);
@@ -133,29 +133,24 @@ public abstract class BaseGameActivity extends AppCompatActivity {
         }
     }
 
-    // -------------------------------------------------------
-    // upd~roomId~explainer~timeLeft~scoreA~scoreB
-    // -------------------------------------------------------
     private void handleUpd(String text) {
         if (countdownDialog != null && countdownDialog.isShowing()) {
             countdownDialog.dismiss();
         }
+
         String[] p = text.split("~");
         if (p.length < 6) return;
 
         explainerUser = p[2];
-        int timeLeft  = safeInt(p[3]);
-        scoreA        = safeInt(p[4]);
-        scoreB        = safeInt(p[5]);
+        int timeLeft = safeInt(p[3]);
+        scoreA = safeInt(p[4]);
+        scoreB = safeInt(p[5]);
 
         if (tvTimer != null) tvTimer.setText(formatSeconds(timeLeft));
         updateScoresUI(scoreA, scoreB);
         onUpd(explainerUser, timeLeft, scoreA, scoreB);
     }
 
-    // -------------------------------------------------------
-    // wrd~roomId~WORD
-    // -------------------------------------------------------
     private void handleWrd(String text) {
         String[] p = text.split("~", 3);
         if (p.length < 3) return;
@@ -163,72 +158,57 @@ public abstract class BaseGameActivity extends AppCompatActivity {
         onWord(p[2]);
     }
 
-    // -------------------------------------------------------
-    // gss~True | gss~False
-    // -------------------------------------------------------
     private void handleGuessResult(String text) {
         String[] p = text.split("~");
         if (p.length < 2) return;
         onGuessResult("True".equalsIgnoreCase(p[1]));
     }
 
-    // -------------------------------------------------------
-    // stg~True | stg~False~reason
-    // -------------------------------------------------------
     private void handleStartResult(String text) {
         String[] p = text.split("~");
-        boolean ok    = p.length >= 2 && "True".equalsIgnoreCase(p[1]);
+        boolean ok = p.length >= 2 && "True".equalsIgnoreCase(p[1]);
         String reason = p.length >= 3 ? p[2] : "";
         onStartResult(ok, reason);
     }
 
-    // -------------------------------------------------------
-    // fin~roomId~winner~scoreA~scoreB~team0players~team1players~reason
-    // winner: 0, 1, o -1 (empate)
-    // team0players / team1players: nombres separados por ";"
-    // -------------------------------------------------------
     private void handleGameFinished(String text) {
         String[] p = text.split("~", 8);
         if (p.length < 7) return;
 
-        int    winner      = safeInt(p[2]);
-        int    sA          = safeInt(p[3]);
-        int    sB          = safeInt(p[4]);
+        int winner = safeInt(p[2]);
+        int sA = safeInt(p[3]);
+        int sB = safeInt(p[4]);
         String team0players = p.length > 5 ? p[5] : "";
         String team1players = p.length > 6 ? p[6] : "";
-        String reason       = p.length > 7 ? p[7] : "";
+        String reason = p.length > 7 ? p[7] : "";
 
-        // Cerrar dialog de desconexión si estaba abierto
         if (disconnectDialog != null && disconnectDialog.isShowing()) {
             disconnectDialog.dismiss();
         }
 
         Intent intent = new Intent(this, game_over.class);
-        intent.putExtra("roomId",       roomId);
-        intent.putExtra("username",     myUsername);
-        intent.putExtra("winner",       winner);
-        intent.putExtra("scoreA",       sA);
-        intent.putExtra("scoreB",       sB);
+        intent.putExtra("roomId", roomId);
+        intent.putExtra("username", myUsername);
+        intent.putExtra("winner", winner);
+        intent.putExtra("scoreA", sA);
+        intent.putExtra("scoreB", sB);
         intent.putExtra("team0players", team0players);
         intent.putExtra("team1players", team1players);
-        intent.putExtra("reason",       reason);
+        intent.putExtra("reason", reason);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
         finish();
     }
 
-    // -------------------------------------------------------
-    // end~roomId~reason  — juego terminado abruptamente
-    // -------------------------------------------------------
     private void handleGameEnd(String text) {
-        String[] p   = text.split("~");
+        String[] p = text.split("~");
         String reason = p.length >= 3 ? p[2] : "GAME_OVER";
 
         if (disconnectDialog != null && disconnectDialog.isShowing()) {
             disconnectDialog.dismiss();
         }
 
-        Toast.makeText(this, "Juego terminado: " + reason, Toast.LENGTH_LONG).show();
+        Toast.makeText(this, ClientMessageUtils.gameEndedMessage(reason), Toast.LENGTH_LONG).show();
 
         Intent intent = new Intent(this, HomeActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -236,50 +216,36 @@ public abstract class BaseGameActivity extends AppCompatActivity {
         finish();
     }
 
-    // -------------------------------------------------------
-    // dsc~roomId~username~secondsToWait
-    // Un jugador se desconectó — juego pausado
-    // -------------------------------------------------------
     private void handlePlayerDisconnected(String text) {
         String[] p = text.split("~");
         if (p.length < 4) return;
 
-        String who     = p[2];
+        String who = p[2];
         String seconds = p[3];
 
-        // Cerrar dialog anterior si lo había
         if (disconnectDialog != null && disconnectDialog.isShowing()) {
             disconnectDialog.dismiss();
         }
 
         disconnectDialog = new AlertDialog.Builder(this)
-                .setTitle("Jugador desconectado")
-                .setMessage(who + " se desconectó.\nEsperando reconexión (" + seconds + "s)…\n\nEl juego está pausado.")
+                .setTitle("Player disconnected")
+                .setMessage(ClientMessageUtils.playerDisconnectedMessage(who) + "\n\nWaiting " + seconds + "s.")
                 .setCancelable(false)
                 .create();
         disconnectDialog.show();
     }
 
-    // -------------------------------------------------------
-    // rsm~roomId~username
-    // El jugador desconectado volvió — juego reanudado
-    // -------------------------------------------------------
     private void handleGameResumed(String text) {
         String[] p = text.split("~");
-        String who = p.length >= 3 ? p[2] : "El jugador";
+        String who = p.length >= 3 ? p[2] : "";
 
         if (disconnectDialog != null && disconnectDialog.isShowing()) {
             disconnectDialog.dismiss();
         }
 
-        Toast.makeText(this, who + " reconectó. ¡Seguimos!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, ClientMessageUtils.playerReconnectedMessage(who), Toast.LENGTH_SHORT).show();
     }
 
-    // -------------------------------------------------------
-    // hst~roomId~newHostUsername — transferencia de host
-    // Solo relevante en pantallas de lobby; aquí lo ignoramos
-    // pero las subclases pueden sobreescribirlo si es necesario
-    // -------------------------------------------------------
     private void handleHostTransfer(String text) {
         String[] p = text.split("~");
         if (p.length < 3) return;
@@ -287,15 +253,11 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     }
 
     protected void onHostTransferred(String newHostUsername) {
-        // Subclases pueden reaccionar si necesitan (por defecto no-op durante juego)
     }
 
-    // -------------------------------------------------------
-    // Helpers UI
-    // -------------------------------------------------------
     protected void updateScoresUI(int a, int b) {
-        if (tvScoreA != null) tvScoreA.setText(String.format(Locale.US, "TU EQUIPO: %d", a));
-        if (tvScoreB != null) tvScoreB.setText(String.format(Locale.US, "RIVAL: %d", b));
+        if (tvScoreA != null) tvScoreA.setText(String.format(Locale.US, "YOUR TEAM: %d", a));
+        if (tvScoreB != null) tvScoreB.setText(String.format(Locale.US, "RIVALS: %d", b));
     }
 
     protected static String formatSeconds(int totalSeconds) {
@@ -309,12 +271,13 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     }
 
     protected static int safeInt(String s) {
-        try { return Integer.parseInt(s.trim()); } catch (Exception e) { return 0; }
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
-    // -------------------------------------------------------
-    // Hooks abstractos
-    // -------------------------------------------------------
     protected abstract void onUpd(String explainer, int timeLeft, int scoreA, int scoreB);
     protected abstract void onWord(String word);
     protected abstract void onGuessResult(boolean correct);
