@@ -21,20 +21,17 @@ import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends AppCompatActivity {
 
-
     private Handler socketHandler;
-
 
     // UI
     private LinearLayout loginCard;
     private EditText etUser, etPass, etConfirmPass;
     private Button btnLogin;
     private TextView tvSwitchMode;
-
+    private TextView tvError;
 
     // STATE
     private boolean isSignupMode = false;
-
 
     // ANIMATIONS
     private Animation dropAnim, bounceAnim, shakeAnim, buttonPressAnim;
@@ -44,48 +41,42 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-        // FIND VIEWS
         loginCard = findViewById(R.id.loginCard);
         etUser = findViewById(R.id.etUsername);
         etPass = findViewById(R.id.etPassword);
         etConfirmPass = findViewById(R.id.etConfirmPassword);
         btnLogin = findViewById(R.id.btnLogin);
         tvSwitchMode = findViewById(R.id.tvSwitchMode);
+        tvError = findViewById(R.id.tvError);
 
         animation();
         socketHandler();
 
-        // LOGIN / SIGNUP BUTTON
         btnLogin.setOnClickListener(v -> {
             btnLogin.startAnimation(buttonPressAnim);
             handleAction();
         });
 
-        // SWITCH MODE
         tvSwitchMode.setOnClickListener(v -> switchMode());
-
     }
 
-
-
-    // HANDLE LOGIN OR SIGNUP
     private void handleAction() {
         String user = etUser.getText().toString().trim();
         String pass = etPass.getText().toString().trim();
         String confirm = etConfirmPass.getText().toString().trim();
-        SocketHandler.setUsername(etUser.getText().toString().trim());
+
+        hideError();
 
         if (user.isEmpty() || pass.isEmpty()) {
             loginCard.startAnimation(shakeAnim);
-            Toast.makeText(this, R.string.fields_cannot_be_empty, Toast.LENGTH_SHORT).show();
+            showError(getString(R.string.fields_cannot_be_empty));
             return;
         }
 
         if (isSignupMode) {
             if (!pass.equals(confirm)) {
                 loginCard.startAnimation(shakeAnim);
-                Toast.makeText(this, R.string.passwords_do_not_match, Toast.LENGTH_SHORT).show();
+                showError(getString(R.string.passwords_do_not_match));
                 return;
             }
             sendToServer("reg", user, pass);
@@ -94,15 +85,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // SEND DATA
     private void sendToServer(String type, String user, String pass) {
-        byte[] data = (type + "~" + user + "~" + pass).getBytes();
+        byte[] data = (type + "~" + user + "~" + pass).getBytes(StandardCharsets.UTF_8);
         new Thread(new tcp_send_recv(socketHandler, data)).start();
     }
 
-    // SWITCH LOGIN <-> SIGNUP
     private void switchMode() {
         isSignupMode = !isSignupMode;
+        hideError();
 
         if (isSignupMode) {
             etConfirmPass.setVisibility(View.VISIBLE);
@@ -121,10 +111,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-    // ANIMATION SETUP
-    private void animation(){
-
+    private void animation() {
         dropAnim = AnimationUtils.loadAnimation(this, R.anim.slide_fade_down);
         bounceAnim = AnimationUtils.loadAnimation(this, R.anim.bounce_soft);
         shakeAnim = AnimationUtils.loadAnimation(this, R.anim.shake_error);
@@ -140,34 +127,82 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-   // SOCKET HANDLER
-    private void socketHandler(){
+    private void socketHandler() {
         socketHandler = new Handler(Looper.getMainLooper()) {
             @Override
             public void handleMessage(@NonNull Message msg) {
                 if (msg.obj == null) return;
+
                 String response = (msg.obj instanceof byte[])
                         ? new String((byte[]) msg.obj, StandardCharsets.UTF_8)
                         : String.valueOf(msg.obj);
                 response = response.trim();
 
-                if (response.equalsIgnoreCase("log~True")) {
-                    Toast.makeText(
-                            MainActivity.this,
-                            isSignupMode ? "Account created!" : "Login successful",
-                            Toast.LENGTH_SHORT
-                    ).show();
-
-                    startActivity(new Intent(MainActivity.this, HomeActivity.class));
-                    finish();
-                } else {
-                    loginCard.startAnimation(shakeAnim);
-                    Toast.makeText(MainActivity.this, "Operation failed", Toast.LENGTH_SHORT).show();
+                if (response.startsWith("log~") || response.startsWith("reg~")) {
+                    handleAuthResponse(response);
+                    return;
                 }
+
+                loginCard.startAnimation(shakeAnim);
+                showError("Respuesta inesperada del servidor");
             }
         };
     }
 
+    private void handleAuthResponse(String response) {
+        String[] p = response.split("~", 3);
+        if (p.length < 2) {
+            loginCard.startAnimation(shakeAnim);
+            showError("Respuesta inválida del servidor");
+            return;
+        }
+
+        String code = p[0];
+        boolean ok = "True".equalsIgnoreCase(p[1]);
+        String reason = (p.length >= 3) ? p[2].trim() : "";
+
+        if (ok) {
+            String user = etUser.getText().toString().trim();
+            SocketHandler.setUsername(user);
+
+            Toast.makeText(
+                    MainActivity.this,
+                    "reg".equals(code) ? "Account created!" : "Login successful",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            startActivity(new Intent(MainActivity.this, HomeActivity.class));
+            finish();
+            return;
+        }
+
+        loginCard.startAnimation(shakeAnim);
+        showError(mapAuthReason(code, reason));
+    }
+
+    private String mapAuthReason(String code, String reason) {
+        if ("ALREADY_CONNECTED".equalsIgnoreCase(reason)) {
+            return "Ese usuario ya está conectado.";
+        }
+        if ("BAD_CREDENTIALS".equalsIgnoreCase(reason)) {
+            return "Usuario o contraseña incorrectos.";
+        }
+        if ("USER_EXISTS".equalsIgnoreCase(reason)) {
+            return "Ese usuario ya existe.";
+        }
+        if ("BAD_FORMAT".equalsIgnoreCase(reason)) {
+            return "Datos inválidos.";
+        }
+        return "reg".equals(code) ? "No se pudo crear la cuenta." : "No se pudo iniciar sesión.";
+    }
+
+    private void showError(String text) {
+        tvError.setText(text);
+        tvError.setVisibility(View.VISIBLE);
+    }
+
+    private void hideError() {
+        tvError.setText("");
+        tvError.setVisibility(View.GONE);
+    }
 }
-
-

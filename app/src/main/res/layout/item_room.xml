@@ -10,7 +10,7 @@
         android:id="@+id/tvRoomName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Room 1"
+        android:text="@string/room"
         android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:textStyle="bold"/>

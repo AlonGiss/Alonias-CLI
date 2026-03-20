@@ -24,14 +24,11 @@ public class JoinRoom extends AppCompatActivity {
 
     private RecyclerView rvRooms;
 
-    // TU ADAPTER QUEDA IGUAL: ArrayList<String>
     private final ArrayList<String> roomsText = new ArrayList<>();
     private MyAdapter adapter;
     private Timer lobbytimer;
-    // Data real de cada room (para join)
     private final ArrayList<RoomInfo> roomsData = new ArrayList<>();
 
-    // Handler que recibe los bytes desencriptados desde tcp_send_recv.Listener
     private final Handler netHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
@@ -99,7 +96,6 @@ public class JoinRoom extends AppCompatActivity {
 
         RoomInfo room = roomsData.get(position);
 
-        // checks opcionales
         if (!"WAITING".equalsIgnoreCase(room.status)) {
             Toast.makeText(this, "Room not available", Toast.LENGTH_SHORT).show();
             return;
@@ -114,7 +110,6 @@ public class JoinRoom extends AppCompatActivity {
             return;
         }
 
-        // pedir password
         EditText input = new EditText(this);
         input.setHint("Password");
 
@@ -131,12 +126,10 @@ public class JoinRoom extends AppCompatActivity {
     }
 
     private void requestRoomsList() {
-        // Protocolo: lst~
         sendToServer("lst~");
     }
 
     private void joinRoom(String roomCode, String pass) {
-        // Protocolo: jnr~roomCode~passwordOrEmpty
         sendToServer("jnr~" + roomCode + "~" + pass);
     }
 
@@ -146,10 +139,6 @@ public class JoinRoom extends AppCompatActivity {
     }
 
     private void onServerMessage(String text) {
-        // lst~True~CODE|name|locked|count|max|status,...
-        // jnr~True~roomId~players...
-        // jnr~False~REASON
-
         if (text.startsWith("lst~")) {
             handleRoomsList(text);
             return;
@@ -162,12 +151,10 @@ public class JoinRoom extends AppCompatActivity {
 
         if (text.startsWith("err~NOT_LOGGED")) {
             Toast.makeText(this, "Not logged in", Toast.LENGTH_SHORT).show();
-            return;
         }
     }
 
     private void handleRoomsList(String msg) {
-        // lst~True~payload
         String[] p = msg.split("~", 3);
         if (p.length < 2) return;
 
@@ -187,8 +174,6 @@ public class JoinRoom extends AppCompatActivity {
                     RoomInfo info = parseRoomItem(item);
                     if (info != null) {
                         roomsData.add(info);
-
-                        // Texto para el Recycler (tu adapter solo muestra un string)
                         String line = info.name + " (" + info.count + "/" + info.max + ")  " +
                                 info.code + (info.locked ? " 🔒" : "");
                         roomsText.add(line);
@@ -201,7 +186,6 @@ public class JoinRoom extends AppCompatActivity {
     }
 
     private RoomInfo parseRoomItem(String item) {
-        // roomCode|name|locked|count|max|status
         String[] f = item.split("\\|");
         if (f.length < 6) return null;
 
@@ -219,8 +203,6 @@ public class JoinRoom extends AppCompatActivity {
     }
 
     private void handleJoinReply(String msg) {
-        // jnr~True~roomId~players...
-        // jnr~False~REASON
         String[] p = msg.split("~", 4);
         if (p.length < 2) return;
 
@@ -231,20 +213,52 @@ public class JoinRoom extends AppCompatActivity {
             }
 
             String roomId = p[2];
-            String players = (p.length >= 4) ? p[3] : "";
 
             Toast.makeText(this, "Joined! roomId=" + roomId, Toast.LENGTH_SHORT).show();
             lobbytimer.cancel();
+
             Intent i = new Intent(this, LobbyActivity.class);
             i.putExtra("roomId", roomId);
             i.putExtra("username", SocketHandler.getUsername());
             i.putExtra("isHost", false);
             startActivity(i);
             finish();
-
         } else {
             String reason = (p.length >= 3) ? p[2] : "UNKNOWN";
-            Toast.makeText(this, "Join failed: " + reason, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, mapJoinReason(reason), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private String mapJoinReason(String reason) {
+        if ("NO_ROOM".equalsIgnoreCase(reason)) {
+            return "La sala ya no existe.";
+        }
+        if ("ROOM_NOT_WAITING".equalsIgnoreCase(reason)) {
+            return "La sala ya empezó.";
+        }
+        if ("BAD_PASSWORD".equalsIgnoreCase(reason)) {
+            return "Contraseña incorrecta.";
+        }
+        if ("ROOM_FULL".equalsIgnoreCase(reason)) {
+            return "La sala está llena.";
+        }
+        if ("USERNAME_ALREADY_IN_ROOM".equalsIgnoreCase(reason)) {
+            return "Ese usuario ya está dentro de esa sala.";
+        }
+        if ("ALREADY_IN_OTHER_ROOM".equalsIgnoreCase(reason)) {
+            return "Ese usuario ya está en otra sala.";
+        }
+        if ("NO_USER".equalsIgnoreCase(reason)) {
+            return "Usuario inválido.";
+        }
+        return "No se pudo entrar: " + reason;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (lobbytimer != null) {
+            lobbytimer.cancel();
         }
     }
 }

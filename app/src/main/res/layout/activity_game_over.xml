@@ -1,149 +1,170 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".game_over">
+    android:background="@drawable/ng_card_red_black">
 
     <ScrollView
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#1A1A2E"
-        android:padding="24dp">
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
+            android:id="@+id/gameOverCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_margin="24dp"
             android:orientation="vertical"
-            android:gravity="center"
-            android:paddingTop="32dp"
-            android:paddingBottom="32dp">
+            android:padding="24dp"
+            android:background="@drawable/bg_card_red"
+            android:gravity="center_horizontal">
 
-            <!-- Título: GANASTE / PERDISTE / EMPATE -->
+            <!-- TITLE -->
             <TextView
                 android:id="@+id/tvGameOverTitle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="FIN DEL JUEGO"
-                android:textSize="40sp"
+                android:text="@string/end_game"
+                android:textSize="30sp"
+                android:textColor="#FFFFFF"
                 android:textStyle="bold"
-                android:textColor="#FFD700"
                 android:gravity="center"
-                android:layout_marginBottom="8dp"/>
+                android:letterSpacing="0.15"
+                android:fontFamily="@font/planet_jumbo"
+                android:paddingBottom="12dp"
+                android:shadowColor="@color/white"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="40" />
 
-            <!-- Subtítulo -->
+            <!-- RESULT -->
             <TextView
                 android:id="@+id/tvResult"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text=""
-                android:textSize="18sp"
-                android:textColor="#CCCCCC"
+                android:textSize="15sp"
+                android:textColor="#FFB4B4"
+                android:textStyle="bold"
                 android:gravity="center"
-                android:layout_marginBottom="32dp"/>
+                android:paddingBottom="16dp" />
 
-            <!-- Razón (solo si alguien se fue) -->
+            <!-- REASON -->
             <TextView
                 android:id="@+id/tvReason"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textSize="14sp"
-                android:textColor="#FF6B6B"
+                android:textColor="#FF8A80"
                 android:gravity="center"
-                android:visibility="gone"
-                android:layout_marginBottom="16dp"/>
+                android:paddingBottom="16dp"
+                android:visibility="gone" />
 
-            <!-- Puntajes -->
+            <!-- SCORES LABEL -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/results"
+                android:textColor="#FFB4B4"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:paddingBottom="8dp" />
+
+            <!-- SCORES -->
             <LinearLayout
+                android:id="@+id/scoreRow"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center"
-                android:layout_marginBottom="24dp">
+                android:paddingBottom="16dp">
 
                 <TextView
                     android:id="@+id/tvScoreA"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Equipo A: 0"
-                    android:textSize="22sp"
+                    android:text="@string/team_a"
+                    android:textColor="#FFFFFF"
                     android:textStyle="bold"
-                    android:textColor="#4FC3F7"
-                    android:gravity="center"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text=" — "
-                    android:textSize="22sp"
-                    android:textColor="#FFFFFF"/>
+                    android:textSize="16sp"
+                    android:gravity="start" />
 
                 <TextView
                     android:id="@+id/tvScoreB"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Equipo B: 0"
-                    android:textSize="22sp"
+                    android:text="@string/team_b"
+                    android:textColor="#FFFFFF"
                     android:textStyle="bold"
-                    android:textColor="#EF9A9A"
-                    android:gravity="center"/>
-
+                    android:textSize="16sp"
+                    android:gravity="end" />
             </LinearLayout>
 
-            <!-- Jugadores equipo A -->
+            <!-- PLAYERS LABEL -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="JUGADORES"
-                android:textSize="12sp"
-                android:textColor="#888888"
+                android:text="@string/players"
+                android:textColor="#FFB4B4"
+                android:textSize="13sp"
                 android:textStyle="bold"
-                android:letterSpacing="0.15"
-                android:layout_marginBottom="6dp"/>
+                android:paddingBottom="8dp" />
 
             <TextView
                 android:id="@+id/tvTeam0Players"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Equipo A: —"
-                android:textSize="16sp"
-                android:textColor="#4FC3F7"
-                android:layout_marginBottom="8dp"/>
+                android:background="@drawable/bg_input"
+                android:text="@string/team_a"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:padding="12dp"
+                android:layout_marginBottom="10dp" />
 
             <TextView
                 android:id="@+id/tvTeam1Players"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Equipo B: —"
-                android:textSize="16sp"
-                android:textColor="#EF9A9A"
-                android:layout_marginBottom="40dp"/>
+                android:background="@drawable/bg_input"
+                android:text="@string/team_b"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:padding="12dp"
+                android:layout_marginBottom="18dp" />
 
-            <!-- Botón: Jugar de nuevo -->
+            <!-- BUTTONS -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRematch"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="JUGAR DE NUEVO"
-                android:textSize="16sp"
+                android:layout_height="52dp"
+                android:text="@string/play_again"
+                android:textColor="#FFFFFF"
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp"
-                style="@style/Widget.MaterialComponents.Button"/>
+                android:background="@drawable/bg_button_red"
+                app:backgroundTint="@null"
+                app:rippleColor="@android:color/transparent" />
 
-            <!-- Botón: Salir al menú -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLeave"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="SALIR AL MENÚ"
-                android:textSize="16sp"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                android:layout_height="52dp"
+                android:text="@string/back_to_menu"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:background="@drawable/bg_button_red"
+                app:backgroundTint="@null"
+                app:rippleColor="@android:color/transparent" />
 
         </LinearLayout>
     </ScrollView>

@@ -30,7 +30,7 @@ public class activity_guesser extends BaseGameActivity {
         tvScoreB = findViewById(R.id.tvScoreOther);
 
         tvRoomInfo  = findViewById(R.id.tvRoomInfo);
-        tvExplainer = findViewById(R.id.tvExplainer);
+        //tvExplainer = findViewById(R.id.tvExplainer);
         etGuess     = findViewById(R.id.etGuess);
         btnSendGuess = findViewById(R.id.btnSendGuess);
         tvResult    = findViewById(R.id.tvResult);
@@ -60,7 +60,7 @@ public class activity_guesser extends BaseGameActivity {
     // FIX: firma actualizada — timeLeft en vez de endEpoch
     @Override
     protected void onUpd(String explainer, int timeLeft, int scoreA, int scoreB) {
-        tvExplainer.setText("EXPLICA: " + explainer);
+        //tvExplainer.setText("EXPLICA: " + explainer);
 
         boolean amIExplainer = myUsername != null && myUsername.equals(explainer);
         btnSendGuess.setEnabled(!amIExplainer);
