@@ -31,18 +31,6 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     private AlertDialog countdownDialog;
     private AlertDialog serverDownDialog;
 
-    private final Handler heartbeatHandler = new Handler(Looper.getMainLooper());
-
-    private final Runnable heartbeatRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (roomId != null && !roomId.isEmpty()) {
-                sendToServer("hrb~" + roomId);
-            }
-
-            heartbeatHandler.postDelayed(this, 3000);
-        }
-    };
     protected final Handler netHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
@@ -68,8 +56,6 @@ public abstract class BaseGameActivity extends AppCompatActivity {
         myUsername = getIntent().getStringExtra("username");
 
         SocketHandler.setHandler(netHandler);
-
-        heartbeatHandler.postDelayed(heartbeatRunnable, 3000);
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -451,8 +437,6 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
-        heartbeatHandler.removeCallbacks(heartbeatRunnable);
 
         if (disconnectDialog != null && disconnectDialog.isShowing()) {
             disconnectDialog.dismiss();

@@ -58,6 +58,8 @@ public class CreateMultiplayerRoom extends AppCompatActivity {
     }
 
     private void createRoom() {
+        findViewById(R.id.btnCreateRoom).setEnabled(false);
+        findViewById(R.id.btnCreateRoom).setAlpha(0.35f);
         EditText name = findViewById(R.id.etRoomName);
         EditText pwd = findViewById(R.id.etPassword);
         Spinner time = findViewById(R.id.spRoundTime);
@@ -65,6 +67,8 @@ public class CreateMultiplayerRoom extends AppCompatActivity {
         Spinner diff = findViewById(R.id.spDifficulty);
 
         if (name.getText().toString().isEmpty() || pwd.getText().toString().isEmpty()) {
+            findViewById(R.id.btnCreateRoom).setEnabled(true);
+            findViewById(R.id.btnCreateRoom).setAlpha(1f);
             toast("Please fill in all fields.");
             return;
         }
@@ -73,6 +77,8 @@ public class CreateMultiplayerRoom extends AppCompatActivity {
         String password = pwd.getText().toString().trim();
 
         if (!validateInputs(roomName, password)) {
+            findViewById(R.id.btnCreateRoom).setEnabled(true);
+            findViewById(R.id.btnCreateRoom).setAlpha(1f);
             return;
         }
 
@@ -109,6 +115,8 @@ public class CreateMultiplayerRoom extends AppCompatActivity {
                     } else {
                         String reason = p.length >= 3 ? p[2] : "ERROR";
                         Toast.makeText(CreateMultiplayerRoom.this, ClientMessageUtils.roomCreateMessage(reason), Toast.LENGTH_SHORT).show();
+                        findViewById(R.id.btnCreateRoom).setEnabled(true);
+                        findViewById(R.id.btnCreateRoom).setAlpha(1f);
                     }
                 }
             }
