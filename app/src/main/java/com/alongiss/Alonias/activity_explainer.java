@@ -16,6 +16,7 @@ public class activity_explainer extends BaseGameActivity {
     private MaterialButton btnSkip;
     private MaterialButton btnMuteVoice;
 
+    private String room_text;
     private VoiceChatManager voiceChat;
 
     @Override
@@ -33,8 +34,9 @@ public class activity_explainer extends BaseGameActivity {
 
         btnSkip = findViewById(R.id.btnSkip);
         btnMuteVoice = findViewById(R.id.btnMuteVoice);
+        room_text = getString(R.string.room) + roomId + getString(R.string.your_turn);
 
-        tvRoomInfo.setText("ROOM: " + roomId + " • YOUR TURN");
+        tvRoomInfo.setText(room_text);
 
         voiceChat = new VoiceChatManager(this, roomId, myUsername, true);
         voiceChat.start();
@@ -48,7 +50,7 @@ public class activity_explainer extends BaseGameActivity {
             if (voiceChat == null) return;
             boolean nowMuted = !voiceChat.isMuted();
             voiceChat.setMuted(nowMuted);
-            btnMuteVoice.setText(nowMuted ? "UNMUTE VOICE" : "MUTE VOICE");
+            btnMuteVoice.setText(nowMuted ? getString(R.string.unmute_voice) : getString(R.string.mute_voice));
             showStatus(ClientMessageUtils.voiceChatMutedMessage(nowMuted), false);
         });
     }
@@ -57,12 +59,14 @@ public class activity_explainer extends BaseGameActivity {
     protected void onUpd(String explainer, int timeLeft, int scoreA, int scoreB) {
         boolean amIExplainer = myUsername != null && myUsername.equals(explainer);
         if (!amIExplainer) {
-            tvRoomInfo.setText("ROOM: " + roomId + " • NOT YOUR TURN");
+            room_text = getString(R.string.room) + roomId + getString(R.string.not_your_turn);
+            tvRoomInfo.setText(room_text);
             tvWord.setText("—");
             btnSkip.setEnabled(false);
             showStatus("Now explaining: " + explainer, false);
         } else {
-            tvRoomInfo.setText("ROOM: " + roomId + " • YOUR TURN");
+            room_text = getString(R.string.room) + roomId + getString(R.string.your_turn);
+            tvRoomInfo.setText(room_text);
             btnSkip.setEnabled(true);
         }
     }

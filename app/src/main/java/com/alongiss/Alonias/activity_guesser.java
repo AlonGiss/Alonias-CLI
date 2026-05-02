@@ -35,7 +35,7 @@ public class activity_guesser extends BaseGameActivity {
         tvResult = findViewById(R.id.tvResult);
         btnMuteVoice = findViewById(R.id.btnMuteVoice);
 
-        tvRoomInfo.setText("ROOM: " + roomId);
+        tvRoomInfo.setText((getString(R.string.room)) + roomId);
 
         voiceChat = new VoiceChatManager(this, roomId, myUsername, true);
         voiceChat.start();
@@ -50,7 +50,7 @@ public class activity_guesser extends BaseGameActivity {
             if (voiceChat == null) return;
             boolean nowMuted = !voiceChat.isMuted();
             voiceChat.setMuted(nowMuted);
-            btnMuteVoice.setText(nowMuted ? "UNMUTE VOICE" : "MUTE VOICE");
+            btnMuteVoice.setText(nowMuted ? getString(R.string.unmute_voice) : getString(R.string.mute_voice));
             showResult(ClientMessageUtils.voiceChatMutedMessage(nowMuted), false);
         });
     }

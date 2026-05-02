@@ -32,18 +32,20 @@ public class activity_spectator extends BaseGameActivity {
         tvStatus = findViewById(R.id.tvStatus);
         btnLeave = findViewById(R.id.btnLeave);
 
-        tvRoomInfo.setText("ROOM: " + roomId);
+        tvRoomInfo.setText((getString(R.string.room)) + roomId);
 
         voiceChat = new VoiceChatManager(this, roomId, myUsername, false);
         voiceChat.start();
 
-        btnLeave.setOnClickListener(v -> finish());
+        btnLeave.setOnClickListener(v -> showLeaveGameDialog());
 
     }
 
+
+
     @Override
     protected void onUpd(String explainer, int timeLeft, int scoreA, int scoreB) {
-        tvTurnInfo.setText("TURN: " + explainer + " (EXPLAINING)");
+        tvTurnInfo.setText(getString(R.string.turn) + explainer + getString(R.string.explaining));
     }
 
     @Override

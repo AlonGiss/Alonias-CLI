@@ -15,7 +15,7 @@ public class HomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-
+        ServerDownUI.bind(this);
         LinearLayout card = findViewById(R.id.homeCard);
         Animation drop = AnimationUtils.loadAnimation(this, R.anim.slide_fade_down);
         card.startAnimation(drop);

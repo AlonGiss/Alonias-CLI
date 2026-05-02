@@ -36,9 +36,9 @@ public class VoiceChatManager {
     private static final int RECV_BUF_SIZE = 4096;
 
     private static final int[] AUDIO_SOURCES = new int[] {
-            MediaRecorder.AudioSource.VOICE_COMMUNICATION,
             MediaRecorder.AudioSource.MIC,
             MediaRecorder.AudioSource.DEFAULT,
+            MediaRecorder.AudioSource.VOICE_COMMUNICATION,
             MediaRecorder.AudioSource.CAMCORDER
     };
 

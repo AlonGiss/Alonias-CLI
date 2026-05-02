@@ -104,6 +104,9 @@ public final class ClientMessageUtils {
         if ("NEED_2_PLAYERS".equalsIgnoreCase(reason)) {
             return "At least 2 players are needed to start.";
         }
+        if ("NEED_4_PLAYERS".equalsIgnoreCase(reason)) {
+            return "2 or 4 players are needed to start.";
+        }
         if ("NOT_HOST".equalsIgnoreCase(reason)) {
             return "Only the host can start the match.";
         }

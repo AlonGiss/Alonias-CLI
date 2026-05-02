@@ -46,4 +46,10 @@
     <string name="lobby">LOBBY</string>
     <string name="waiting">WAITING</string>
     <string name="start_host">START (HOST)</string>
+    <string name="your_turn">" • YOUR TURN"</string>
+    <string name="not_your_turn">" • NOT YOUR TURN"</string>
+    <string name="unmute_voice">UNMUTE VOICE</string>
+    <string name="mute_voice">MUTE VOICE</string>
+    <string name="turn">"TURN: "</string>
+    <string name="explaining">" (EXPLAINING)"</string>
 </resources>

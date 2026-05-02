@@ -53,7 +53,7 @@ public class game_over extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game_over);
-
+        ServerDownUI.bind(this);
         SocketHandler.setHandler(netHandler);
 
         Intent intent = getIntent();
@@ -96,8 +96,16 @@ public class game_over extends AppCompatActivity {
         tvScoreA.setText(String.format(Locale.US, "Team A: %d points", scoreA));
         tvScoreB.setText(String.format(Locale.US, "Team B: %d points", scoreB));
 
-        tvTeam0Players.setText("Team A: " + formatPlayers(team0, myUsername));
-        tvTeam1Players.setText("Team B: " + formatPlayers(team1, myUsername));
+        String[] team0ToShow = team0;
+        String[] team1ToShow = team1;
+
+        if ((team1 == null || team1.length == 0) && team0 != null && team0.length >= 2) {
+            team0ToShow = new String[]{team0[0]};
+            team1ToShow = new String[]{team0[1]};
+        }
+
+        tvTeam0Players.setText("Team A: " + formatPlayers(team0ToShow, myUsername));
+        tvTeam1Players.setText("Team B: " + formatPlayers(team1ToShow, myUsername));
 
         if ("PLAYER_LEFT".equals(reason)) {
             tvReason.setVisibility(android.view.View.VISIBLE);
@@ -152,6 +160,7 @@ public class game_over extends AppCompatActivity {
     }
 
     private String formatPlayers(String[] players, String me) {
+
         if (players == null || players.length == 0) return "—";
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < players.length; i++) {

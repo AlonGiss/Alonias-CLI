@@ -30,18 +30,27 @@ public class ActivitySingleplayer extends AppCompatActivity {
     private int roundTimeSec = 60;
     private int timeLeftSec = 60;
 
+    private boolean serverDown = false;
+    private boolean waitingForServerWord = false;
+    private boolean pendingCorrectPoint = false;
+    private boolean firstWordReceived = false;
+
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private Runnable tickRunnable;
+
     private AlertDialog timeUpDialog;
+    private AlertDialog serverDownDialog;
 
     private final Handler netHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             Object o = msg.obj;
             if (o == null) return;
+
             String text = (o instanceof byte[])
                     ? new String((byte[]) o, StandardCharsets.UTF_8)
                     : String.valueOf(o);
+
             onServerMessage(text);
         }
     };
@@ -50,6 +59,8 @@ public class ActivitySingleplayer extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_singleplayer);
+        ServerDownUI.bind(this);
+
         SocketHandler.setHandler(netHandler);
 
         tvWord = findViewById(R.id.tvWordSingle);
@@ -64,42 +75,113 @@ public class ActivitySingleplayer extends AppCompatActivity {
         }
 
         roundTimeSec = getIntent().getIntExtra("roundTime", 60);
-        if (roundTimeSec <= 0) roundTimeSec = 60;
-
-        resetAndStartGame();
+        if (roundTimeSec <= 0) {
+            roundTimeSec = 60;
+        }
 
         btnCorrect.setOnClickListener(v -> {
-            if (timeLeftSec <= 0) return;
-            score += 1;
-            updateScoreUI();
+            if (!canUseServerButtons()) return;
+
+            pendingCorrectPoint = true;
+            waitingForServerWord = true;
+            setGameButtonsEnabled(false);
+
             sendToServer("spc~" + difficulty);
         });
 
         btnSkip.setOnClickListener(v -> {
-            if (timeLeftSec <= 0) return;
+            if (!canUseServerButtons()) return;
+
+            pendingCorrectPoint = false;
+            waitingForServerWord = true;
+            setGameButtonsEnabled(false);
+
             sendToServer("sps~" + difficulty);
         });
+
+        resetAndStartGame();
+    }
+
+    private boolean canUseServerButtons() {
+        if (serverDown) {
+            return false;
+        }
+
+        if (waitingForServerWord) {
+            return false;
+        }
+
+        return timeLeftSec > 0;
+    }
+
+    private void setGameButtonsEnabled(boolean enabled) {
+        btnCorrect.setEnabled(enabled && !serverDown && timeLeftSec > 0);
+        btnSkip.setEnabled(enabled && !serverDown && timeLeftSec > 0);
     }
 
     private void onServerMessage(String text) {
         text = text.trim();
 
+        if (text.startsWith("srv~down")) {
+            handleServerDown();
+            return;
+        }
+
+        if (serverDown) {
+            return;
+        }
+
         if (text.startsWith("wrd~")) {
             String[] p = text.split("~", 3);
+
             if (p.length >= 3) {
+                if (pendingCorrectPoint) {
+                    score += 1;
+                    updateScoreUI();
+                }
+
+                pendingCorrectPoint = false;
+                waitingForServerWord = false;
+
                 tvWord.setText(p[2]);
+
+                if (!firstWordReceived) {
+                    firstWordReceived = true;
+                    startTimer();
+                }
+
+                setGameButtonsEnabled(true);
             }
+
+            return;
+        }
+
+        if (text.startsWith("spr~")) {
             return;
         }
 
         if (text.startsWith("err~")) {
+            pendingCorrectPoint = false;
+            waitingForServerWord = false;
+
             String[] p = text.split("~", 2);
             String reason = p.length >= 2 ? p[1] : "";
+
             Toast.makeText(this, ClientMessageUtils.singleplayerError(reason), Toast.LENGTH_SHORT).show();
+            setGameButtonsEnabled(true);
         }
     }
 
     private void sendToServer(String plainText) {
+        if (serverDown) {
+            return;
+        }
+
+        if (tcp_send_recv.isServerMarkedDown()) {
+            handleServerDown();
+            return;
+        }
+
         byte[] data = plainText.getBytes(StandardCharsets.UTF_8);
         new Thread(new tcp_send_recv(netHandler, data)).start();
     }
@@ -118,35 +200,52 @@ public class ActivitySingleplayer extends AppCompatActivity {
             timeUpDialog.dismiss();
         }
 
+        serverDown = false;
+        waitingForServerWord = true;
+        pendingCorrectPoint = false;
+        firstWordReceived = false;
+
         score = 0;
         timeLeftSec = roundTimeSec;
+
         updateScoreUI();
         updateTimerUI();
+
+        tvWord.setText("Loading...");
+
+        setGameButtonsEnabled(false);
 
         sendToServer("spr~" + difficulty);
         sendToServer("spw~" + difficulty);
 
         Toast.makeText(this, ClientMessageUtils.singleplayerStartedMessage(), Toast.LENGTH_SHORT).show();
-
-        startTimer();
     }
 
     private void startTimer() {
         stopTimer();
+
         tickRunnable = new Runnable() {
             @Override
             public void run() {
+                if (serverDown) {
+                    return;
+                }
+
                 timeLeftSec -= 1;
+
                 if (timeLeftSec <= 0) {
                     timeLeftSec = 0;
                     updateTimerUI();
                     onTimeUp();
                     return;
                 }
+
                 updateTimerUI();
+
                 uiHandler.postDelayed(this, 1000);
             }
         };
+
         uiHandler.postDelayed(tickRunnable, 1000);
     }
 
@@ -154,22 +253,27 @@ public class ActivitySingleplayer extends AppCompatActivity {
         if (tickRunnable != null) {
             uiHandler.removeCallbacks(tickRunnable);
         }
+
         tickRunnable = null;
     }
 
     private void onTimeUp() {
         stopTimer();
-        btnCorrect.setEnabled(false);
-        btnSkip.setEnabled(false);
+
+        setGameButtonsEnabled(false);
 
         String msg = String.format(Locale.US, "Score: %d", score);
+
         timeUpDialog = new AlertDialog.Builder(this)
                 .setTitle("Time is up")
                 .setMessage(msg)
                 .setCancelable(false)
                 .setPositiveButton("Play again", (d, w) -> {
-                    btnCorrect.setEnabled(true);
-                    btnSkip.setEnabled(true);
+                    if (serverDown) {
+                        handleServerDown();
+                        return;
+                    }
+
                     resetAndStartGame();
                 })
                 .setNegativeButton("Exit", (d, w) -> {
@@ -179,15 +283,62 @@ public class ActivitySingleplayer extends AppCompatActivity {
                     finish();
                 })
                 .create();
+
         timeUpDialog.show();
+    }
+
+    private void handleServerDown() {
+        if (serverDown) {
+            return;
+        }
+
+        serverDown = true;
+        waitingForServerWord = false;
+        pendingCorrectPoint = false;
+
+        stopTimer();
+        setGameButtonsEnabled(false);
+
+        tvWord.setText("Connection lost");
+
+        if (timeUpDialog != null && timeUpDialog.isShowing()) {
+            timeUpDialog.dismiss();
+        }
+
+        if (serverDownDialog != null && serverDownDialog.isShowing()) {
+            return;
+        }
+
+        serverDownDialog = new AlertDialog.Builder(this)
+                .setTitle("Connection lost")
+                .setMessage("The server connection was lost. The game cannot continue.")
+                .setCancelable(false)
+                .setPositiveButton("Back to login", (dialog, which) -> {
+                    SocketHandler.reset();
+
+                    Intent i = new Intent(ActivitySingleplayer.this, MainActivity.class);
+                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                    startActivity(i);
+                    finish();
+                })
+                .create();
+
+        serverDownDialog.show();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
         stopTimer();
+
         if (timeUpDialog != null && timeUpDialog.isShowing()) {
             timeUpDialog.dismiss();
+        }
+
+        if (serverDownDialog != null && serverDownDialog.isShowing()) {
+            serverDownDialog.dismiss();
         }
     }
 }
