@@ -1,5 +1,6 @@
 package com.alongiss.Alonias;
 
+import android.Manifest;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
@@ -11,6 +12,8 @@ import android.media.audiofx.AcousticEchoCanceler;
 import android.media.audiofx.AutomaticGainControl;
 import android.media.audiofx.NoiseSuppressor;
 import android.util.Log;
+
+import androidx.annotation.RequiresPermission;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -101,6 +104,7 @@ public class VoiceChatManager {
         this.canSpeak = canSpeak;
     }
 
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     public synchronized void start() {
         if (running) return;
         running = true;
@@ -280,6 +284,7 @@ public class VoiceChatManager {
     // ---------------------------------------------------------------------
     // CAPTURE — mic -> Android processing -> AES-GCM -> UDP -> server
     // ---------------------------------------------------------------------
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     private void startCapture() {
         captureThread = new Thread(() -> {
             AudioRecord recorder = null;
@@ -459,6 +464,7 @@ public class VoiceChatManager {
         captureThread.start();
     }
 
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     private AudioRecord createRecorderWithFallback(int recorderBuf) {
         for (int source : AUDIO_SOURCES) {
             AudioRecord candidate = null;

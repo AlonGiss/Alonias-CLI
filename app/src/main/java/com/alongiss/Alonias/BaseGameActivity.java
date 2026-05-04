@@ -117,7 +117,7 @@ public abstract class BaseGameActivity extends AppCompatActivity {
             handleGameResumed(text);
         } else if (text.startsWith("hst~")) {
             handleHostTransfer(text);
-        } else if (text.startsWith("cd~")) {
+        } else if (text.startsWith("cdw~")) {
             handleCountdown(text);
         } else if (text.startsWith("err~")) {
             String[] p = text.split("~", 2);

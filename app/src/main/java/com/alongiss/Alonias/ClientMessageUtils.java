@@ -16,6 +16,9 @@ public final class ClientMessageUtils {
         if ("USER_EXISTS".equalsIgnoreCase(reason)) {
             return "That username already exists.";
         }
+        if ("BAD_FORMAT_AT_LEAST_3_CHAR".equalsIgnoreCase(reason)) {
+            return "The user or password must be at least 3 characters long.";
+        }
         if ("BAD_FORMAT".equalsIgnoreCase(reason)) {
             return "Invalid login data.";
         }

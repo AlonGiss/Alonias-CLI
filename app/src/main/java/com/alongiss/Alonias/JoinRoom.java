@@ -235,7 +235,7 @@ public class JoinRoom extends AppCompatActivity {
                         roomsData.add(info);
 
                         // This is the text that the user sees for each room inside the RecyclerView.
-                        String line = info.name + " (" + info.count + "/" + info.max + ")  "
+                        String line = "  " + info.name + " (" + info.count + "/" + info.max + ")  "
                                 + info.code + (info.locked ? " 🔒" : "");
 
                         roomsText.add(line);
