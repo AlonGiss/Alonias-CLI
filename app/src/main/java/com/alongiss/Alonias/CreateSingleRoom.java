@@ -19,7 +19,6 @@ public class CreateSingleRoom extends AppCompatActivity {
         setContentView(R.layout.activity_create_room_single);
         ServerDownUI.bind(this);
         spinnerUpdate();
-
         findViewById(R.id.btnCreateRoom).setOnClickListener(v -> create());
     }
 

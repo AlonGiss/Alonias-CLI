@@ -26,18 +26,20 @@ public class VoiceChatManager {
     private static final String TAG = "VoiceChat";
 
     private static final int    VOICE_PORT  = 11134;
-    private static final String SERVER_IP   = "192.168.1.229";
+    private static final String SERVER_IP   = "52.207.226.89";
 
-    // Audio: 16kHz mono 16-bit PCM (~20ms por frame = 640 bytes)
+    // Audio format: 16kHz, mono, 16-bit PCM.
+    // Each frame is about 20ms of audio.
     private static final int SAMPLE_RATE = 16000;
     private static final int CHANNEL_IN  = AudioFormat.CHANNEL_IN_MONO;
     private static final int CHANNEL_OUT = AudioFormat.CHANNEL_OUT_MONO;
     private static final int ENCODING    = AudioFormat.ENCODING_PCM_16BIT;
 
-    private static final int FRAME_SAMPLES = SAMPLE_RATE / 50;   // 320
-    private static final int FRAME_BYTES   = FRAME_SAMPLES * 2;  // 640
+    private static final int FRAME_SAMPLES = SAMPLE_RATE / 50;   // 320 samples
+    private static final int FRAME_BYTES   = FRAME_SAMPLES * 2;  // 640 bytes
     private static final int RECV_BUF_SIZE = 4096;
 
+    // Different microphone sources are tried because not every device supports the same one.
     private static final int[] AUDIO_SOURCES = new int[] {
             MediaRecorder.AudioSource.MIC,
             MediaRecorder.AudioSource.DEFAULT,
@@ -45,24 +47,20 @@ public class VoiceChatManager {
             MediaRecorder.AudioSource.CAMCORDER
     };
 
-    // Detección simple de "estoy hablando" SOLO para ducking del playback.
-    // No corta envío. Solo baja el volumen del audio remoto mientras hablas.
+    // Used only to detect local speech and lower remote playback volume.
+    // It does not stop audio from being sent.
     private static final double SPEAKING_RMS_THRESHOLD = 700.0;
     private static final int SPEAKING_HANGOVER_FRAMES = 12; // ~240 ms
 
-    // Volúmenes del playback
+    // Playback volume levels for players and spectators.
     private static final float PLAYBACK_VOLUME_SPEAKER_IDLE   = 0.55f;
     private static final float PLAYBACK_VOLUME_SPEAKER_DUCKED = 0.08f;
     private static final float PLAYBACK_VOLUME_SPECTATOR      = 1.0f;
 
-    /**
-     * FIX IMPORTANTE:
-     * Como al cambiar de Activity el manager nuevo puede arrancar ANTES de que
-     * el viejo haga onDestroy()/stop(), el viejo NO debe restaurar el audio si
-     * ya existe uno más nuevo activo.
-     *
-     * latestRoutingOwnerToken identifica al manager más reciente que configuró audio.
-     * Solo ese manager puede restaurarlo al hacer stop().
+    /*
+     * When switching Activities, a new VoiceChatManager can start before
+     * the old one finishes stopping. The token system makes sure that only
+     * the newest manager is allowed to restore the audio routing.
      */
     private static final Object ROUTING_LOCK = new Object();
     private static long routingTokenCounter = 0L;
@@ -89,10 +87,10 @@ public class VoiceChatManager {
     private int previousMode = AudioManager.MODE_NORMAL;
     private boolean previousSpeakerphoneOn = false;
 
-    // Token de este manager para ownership del audio routing
+    // Token owned by this manager for audio routing control.
     private long myRoutingToken = 0L;
 
-    // Estado compartido para ducking de speaker mientras hablo
+    // State used for lowering remote volume while the local user is speaking.
     private volatile boolean localSpeechLikely = false;
     private volatile int speechHangoverFrames = 0;
     private volatile float lastAppliedPlaybackVolume = -1f;
@@ -104,6 +102,8 @@ public class VoiceChatManager {
         this.canSpeak = canSpeak;
     }
 
+    // Starts the UDP socket, audio routing, registration heartbeat, playback,
+    // and microphone capture if the user is allowed to speak.
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     public synchronized void start() {
         if (running) return;
@@ -127,10 +127,11 @@ public class VoiceChatManager {
         if (canSpeak) {
             startCapture();
         } else {
-            Log.d(TAG, "canSpeak=false -> capture disabled (spectator)");
+            Log.d(TAG, "canSpeak=false - capture disabled (spectator)");
         }
     }
 
+    // Stops all voice-chat resources and restores audio settings if needed.
     public synchronized void stop() {
         running = false;
 
@@ -163,6 +164,7 @@ public class VoiceChatManager {
         Log.d(TAG, "VoiceChatManager stopped");
     }
 
+    // Enables or disables sending microphone audio.
     public void setMuted(boolean muted) {
         this.muted = muted;
         Log.d(TAG, "Mute set to " + muted);
@@ -175,6 +177,8 @@ public class VoiceChatManager {
     // ---------------------------------------------------------------------
     // AUDIO ROUTING
     // ---------------------------------------------------------------------
+
+    // Configures the Android audio mode and speaker state for voice chat.
     private void configureAudioRouting() {
         try {
             audioManager = (AudioManager) appContext.getSystemService(Context.AUDIO_SERVICE);
@@ -192,8 +196,8 @@ public class VoiceChatManager {
             }
 
             if (canSpeak) {
-                // Seguimos en modo comunicación para favorecer AEC,
-                // PERO con speaker ON para usar siempre altavoz.
+                // Communication mode helps Android apply voice-call audio processing.
+                // Speaker is kept on so the game always uses the phone speaker.
                 audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
                 audioManager.setSpeakerphoneOn(true);
                 Log.d(TAG, "Audio routing configured: MODE_IN_COMMUNICATION + speaker ON"
@@ -201,6 +205,7 @@ public class VoiceChatManager {
                         + " prevMode=" + previousMode
                         + " prevSpeaker=" + previousSpeakerphoneOn);
             } else {
+                // Spectators only listen, so normal mode is enough.
                 audioManager.setMode(AudioManager.MODE_NORMAL);
                 audioManager.setSpeakerphoneOn(true);
                 Log.d(TAG, "Audio routing configured: MODE_NORMAL + speaker ON"
@@ -213,10 +218,7 @@ public class VoiceChatManager {
         }
     }
 
-    /**
-     * Solo restaura si este manager sigue siendo el dueño más reciente del routing.
-     * Si ya arrancó otro manager nuevo, NO tocamos nada para no romperle el audio.
-     */
+    // Restores the previous audio settings only if this is still the newest manager.
     private void restoreAudioRoutingIfOwner() {
         try {
             if (audioManager == null) return;
@@ -248,6 +250,8 @@ public class VoiceChatManager {
     // ---------------------------------------------------------------------
     // REGISTRATION / HEARTBEAT
     // ---------------------------------------------------------------------
+
+    // Sends a repeated UDP registration packet so the server knows this client's voice port.
     private void startRegistrationHeartbeat() {
         registrationThread = new Thread(() -> {
             while (running && !Thread.currentThread().isInterrupted()) {
@@ -264,6 +268,7 @@ public class VoiceChatManager {
         registrationThread.start();
     }
 
+    // Sends the room and username to the UDP voice server.
     private void sendRegistration() {
         try {
             if (sharedSocket == null || sharedSocket.isClosed()) return;
@@ -282,8 +287,10 @@ public class VoiceChatManager {
     }
 
     // ---------------------------------------------------------------------
-    // CAPTURE — mic -> Android processing -> AES-GCM -> UDP -> server
+    // CAPTURE: microphone -> AES encryption -> UDP server
     // ---------------------------------------------------------------------
+
+    // Records microphone audio, encrypts each frame, and sends it to the voice server.
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     private void startCapture() {
         captureThread = new Thread(() -> {
@@ -309,6 +316,7 @@ public class VoiceChatManager {
 
                 int audioSessionId = recorder.getAudioSessionId();
 
+                // Enable Android audio processing effects when supported by the device.
                 if (NoiseSuppressor.isAvailable()) {
                     try {
                         noiseSuppressor = NoiseSuppressor.create(audioSessionId);
@@ -392,6 +400,7 @@ public class VoiceChatManager {
                         continue;
                     }
 
+                    // RMS is used to estimate whether the local user is speaking.
                     double rms = computeRms16(audioBuf, read);
                     updateLocalSpeechState(rms);
 
@@ -418,6 +427,8 @@ public class VoiceChatManager {
                     System.arraycopy(audioBuf, 0, plainFrame, 0, read);
 
                     byte[] encryptedFrame = CryptoUtils.aesEncrypt(voiceKey, plainFrame);
+
+                    // Packet format: voice|roomId|username|encryptedAudio
                     byte[] payload = new byte[headerBytes.length + encryptedFrame.length];
                     System.arraycopy(headerBytes, 0, payload, 0, headerBytes.length);
                     System.arraycopy(encryptedFrame, 0, payload, headerBytes.length, encryptedFrame.length);
@@ -444,6 +455,8 @@ public class VoiceChatManager {
             } finally {
                 localSpeechLikely = false;
                 speechHangoverFrames = 0;
+
+                // Always release audio effects and microphone resources.
                 if (noiseSuppressor != null) {
                     try { noiseSuppressor.release(); } catch (Exception ignored) {}
                 }
@@ -464,6 +477,7 @@ public class VoiceChatManager {
         captureThread.start();
     }
 
+    // Tries several microphone sources until one initializes correctly.
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     private AudioRecord createRecorderWithFallback(int recorderBuf) {
         for (int source : AUDIO_SOURCES) {
@@ -498,8 +512,10 @@ public class VoiceChatManager {
     }
 
     // ---------------------------------------------------------------------
-    // PLAYBACK — server -> UDP -> AES-GCM decrypt -> AudioTrack
+    // PLAYBACK: UDP server -> AES decryption -> speaker
     // ---------------------------------------------------------------------
+
+    // Receives encrypted audio packets, decrypts them, and plays them with AudioTrack.
     private void startPlayback() {
         playbackThread = new Thread(() -> {
             try {
@@ -658,6 +674,8 @@ public class VoiceChatManager {
     // ---------------------------------------------------------------------
     // SPEECH / DUCKING HELPERS
     // ---------------------------------------------------------------------
+
+    // Updates whether the local user is probably speaking based on microphone volume.
     private void updateLocalSpeechState(double rms) {
         if (!canSpeak) {
             localSpeechLikely = false;
@@ -676,6 +694,7 @@ public class VoiceChatManager {
         }
     }
 
+    // Chooses the playback volume according to the user role and speaking state.
     private float getDesiredPlaybackVolume() {
         if (!canSpeak) {
             return PLAYBACK_VOLUME_SPECTATOR;
@@ -683,6 +702,7 @@ public class VoiceChatManager {
         return localSpeechLikely ? PLAYBACK_VOLUME_SPEAKER_DUCKED : PLAYBACK_VOLUME_SPEAKER_IDLE;
     }
 
+    // Applies playback volume only when it actually changes.
     private void applyPlaybackVolume(float volume) {
         if (playbackTrack == null) return;
         if (Math.abs(lastAppliedPlaybackVolume - volume) < 0.001f) return;
@@ -697,6 +717,8 @@ public class VoiceChatManager {
     // ---------------------------------------------------------------------
     // HELPERS
     // ---------------------------------------------------------------------
+
+    // Finds the first position of a byte inside a byte array.
     private static int indexOf(byte[] data, byte value, int from, int max) {
         for (int i = from; i < max; i++) {
             if (data[i] == value) return i;
@@ -704,6 +726,7 @@ public class VoiceChatManager {
         return -1;
     }
 
+    // Checks if a received packet starts with a specific text prefix.
     private static boolean startsWith(byte[] data, String prefix) {
         byte[] p = prefix.getBytes();
         if (data.length < p.length) return false;
@@ -713,6 +736,7 @@ public class VoiceChatManager {
         return true;
     }
 
+    // Safely converts part of a byte array into a UTF-8 string.
     private static String safeString(byte[] data, int offset, int len) {
         try {
             if (offset < 0 || len < 0 || offset + len > data.length) return "";
@@ -722,6 +746,7 @@ public class VoiceChatManager {
         }
     }
 
+    // Converts Android audio source IDs into readable names for logs.
     private static String audioSourceName(int source) {
         if (source == MediaRecorder.AudioSource.MIC) return "MIC";
         if (source == MediaRecorder.AudioSource.VOICE_COMMUNICATION) return "VOICE_COMMUNICATION";
@@ -730,6 +755,7 @@ public class VoiceChatManager {
         return "SOURCE_" + source;
     }
 
+    // Calculates RMS volume from 16-bit PCM audio.
     private static double computeRms16(byte[] pcm, int len) {
         int samples = len / 2;
         if (samples <= 0) return 0.0;

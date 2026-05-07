@@ -35,7 +35,7 @@ public final class ServerDownUI {
         if (activity == null) {
             return;
         }
-
+        // Runs show(activity) on the main UI thread because dialogs must be shown from the main thread.
         new Handler(Looper.getMainLooper()).post(() -> show(activity));
     }
 
@@ -51,6 +51,7 @@ public final class ServerDownUI {
         dialogShowing = true;
 
         try {
+            //DISABLE EVERY PART OF THE SCREEN
             View root = activity.getWindow().getDecorView().getRootView();
             disableViewTree(root);
         } catch (Exception ignored) {

@@ -111,6 +111,7 @@ public class JoinRoom extends AppCompatActivity {
                 return false;
             }
 
+            //ARASTRAR
             @Override
             public void onTouchEvent(RecyclerView rv, MotionEvent e) {}
 

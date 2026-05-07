@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
+// convert the class to an activity
 public abstract class BaseGameActivity extends AppCompatActivity {
 
     protected String roomId;

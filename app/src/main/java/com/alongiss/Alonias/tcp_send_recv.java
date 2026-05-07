@@ -23,7 +23,7 @@ public class tcp_send_recv implements Runnable {
 
     private static final int LEN_SIZE = 9;
 
-    private static final String IP = "192.168.1.229";
+    private static final String IP = "52.207.226.89";
     private static final int PORT = 11133;
 
     private static final int CONNECT_TIMEOUT_MS = 1500;
