@@ -26,7 +26,7 @@ public class VoiceChatManager {
     private static final String TAG = "VoiceChat";
 
     private static final int    VOICE_PORT  = 11134;
-    private static final String SERVER_IP   = "52.207.226.89";
+    private static final String SERVER_IP   = " 192.168.1.229";
 
     // Audio format: 16kHz, mono, 16-bit PCM.
     // Each frame is about 20ms of audio.
